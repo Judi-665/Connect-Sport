@@ -1,0 +1,7 @@
+@extends('layouts.app')
+
+@section('title', 'Conversation')
+
+@section('content')
+<div class="container py-4"><div class="d-flex justify-content-between align-items-center mb-3"><div><p class="text-uppercase small fw-bold text-warning mb-1">Conversation</p><h1 class="h4 mb-0">{{ $user->prenom ?? $user->name }}</h1></div><a href="{{ route('messages.inbox') }}" class="btn btn-outline-secondary">Retour</a></div><div class="card shadow-sm"><div class="card-body" style="min-height:320px;max-height:520px;overflow:auto">@forelse($messages as $message)<div class="d-flex mb-3 {{ $message->expediteur_id === auth()->id() ? 'justify-content-end' : 'justify-content-start' }}"><div class="p-3 rounded-3 {{ $message->expediteur_id === auth()->id() ? 'bg-primary text-white' : 'bg-light' }}" style="max-width:75%">{{ $message->contenu }}<small class="d-block opacity-75 mt-1">{{ $message->created_at->format('d/m/Y H:i') }}</small></div></div>@empty<div class="text-center text-secondary py-5">Commencez la conversation.</div>@endforelse</div><div class="card-footer"><form method="POST" action="{{ route('messages.send') }}" class="d-flex gap-2">@csrf<input type="hidden" name="destinataire_id" value="{{ $user->id }}"><input name="contenu" class="form-control" maxlength="2000" placeholder="Écrire un message..." required><button class="btn btn-primary"><i class="bi bi-send"></i></button></form></div></div></div>
+@endsection
