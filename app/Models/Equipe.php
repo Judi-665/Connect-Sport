@@ -52,4 +52,11 @@ class Equipe extends Model
     {
         return $this->hasMany(Joueur::class);
     }
+
+    public function historiqueJoueurs()
+{
+    return $this->belongsToMany(Joueur::class, 'equipe_joueur')
+                ->withPivot('date_debut', 'date_fin', 'actif')
+                ->withTimestamps();
+}
 }

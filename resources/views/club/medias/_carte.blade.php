@@ -71,6 +71,11 @@
                 @endif
             </div>
 
+            <div class="d-flex gap-3 small text-muted mb-3" aria-label="Réactions reçues">
+                <span><i class="bi bi-hand-thumbs-up me-1"></i>J’aime {{ $media->likes_count ?? 0 }}</span>
+                <span><i class="bi bi-heart me-1"></i>J’adore {{ $media->loves_count ?? 0 }}</span>
+            </div>
+
             {{-- Actions --}}
             <div class="d-flex gap-1">
                 <a href="{{ $media->url() }}" target="_blank"

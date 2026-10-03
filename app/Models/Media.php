@@ -67,13 +67,13 @@ class Media extends Model
 
     public function url(): string
     {
-        return asset('storage/' . $this->chemin);
+        return route('medias.file', $this);
     }
 
     public function urlMiniature(): ?string
     {
         return $this->miniature
-            ? asset('storage/' . $this->miniature)
+            ? route('medias.file', ['media' => $this, 'variant' => 'thumbnail'])
             : null;
     }
 
@@ -105,6 +105,11 @@ class Media extends Model
     public function evenement()
     {
         return $this->belongsTo(EvenementAgenda::class, 'evenement_id');
+    }
+
+    public function reactions()
+    {
+        return $this->hasMany(MediaReaction::class);
     }
   
 }

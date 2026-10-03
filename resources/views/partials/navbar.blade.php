@@ -1,18 +1,19 @@
 {{-- resources/views/partials/navbar.blade.php --}}
 @php
     $user   = auth()->user();
-    $unread = $user ? $user->messagesRecus()->where('lu', false)->count() : 0;
-    $avatarUrl = $user?->avatar
-        ? asset('storage/' . $user->avatar)
-        : null;
-    $initiale = strtoupper(substr($user?->prenom ?? $user?->name ?? 'U', 0, 1));
+    $club   = $user?->role === 'club' ? $user->club : null;
+    $unread = $user && !$user->isSupporter() ? $user->messagesRecus()->where('lu', false)->count() : 0;
+    $profileImageUrl = $club?->logo
+        ? asset('storage/' . $club->logo)
+        : ($user?->avatar ? asset('storage/' . $user->avatar) : null);
+    $initiale = strtoupper(substr($club?->nom ?? $user?->prenom ?? $user?->name ?? 'U', 0, 1));
 @endphp
 
 <nav class="navbar navbar-expand-lg fixed-top bg-body-tertiary shadow-sm">
     <div class="container-fluid px-3 px-lg-4">
 
                 @auth
-            @if(in_array(auth()->user()->role, ['club', 'agent', 'joueur']))
+            @if(in_array(auth()->user()->role, ['club', 'agent', 'joueur', 'parent']))
                 <button class="btn btn-outline-secondary d-lg-none me-1 p-1"
                         id="sidebar-mobile-btn"
                         onclick="toggleMobileSidebar()"
@@ -49,23 +50,50 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    @php
+                        $clubConnecte = auth()->check() && auth()->user()->role === 'club'
+                            ? auth()->user()->club
+                            : null;
+                        $clubsNavUrl = $clubConnecte?->slug
+                            ? route('clubs.show', $clubConnecte->slug)
+                            : route('clubs.index');
+                    @endphp
                     <a class="nav-link {{ request()->routeIs('clubs.*') ? 'active fw-semibold' : '' }}"
-                       href="{{ route('clubs.index') }}">
+                       href="{{ $clubsNavUrl }}">
                         <i class="bi bi-shield me-1"></i> Clubs
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('opportunites.*') ? 'active fw-semibold' : '' }}"
-                       href="{{ route('opportunites.index') }}">
-                        <i class="bi bi-lightning me-1"></i> Opportunités
-                    </a>
-                </li>
+                @if(!$user?->isSupporter())
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('opportunites.*') ? 'active fw-semibold' : '' }}"
+                           href="{{ route('opportunites.index') }}">
+                            <i class="bi bi-lightning me-1"></i> Opportunités
+                        </a>
+                    </li>
+                @endif
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('joueurs.*') ? 'active fw-semibold' : '' }}"
                        href="{{ route('joueurs.sans-club') }}">
                         <i class="bi bi-people me-1"></i> Joueurs
                     </a>
                 </li>
+                @auth
+                    @if(auth()->user()->isSupporter())
+                    <li class="nav-item">
+                        <a class="nav-link text-warning fw-semibold {{ request()->routeIs('supporter.*') ? 'active' : '' }}"
+                           href="{{ route('supporter.dashboard') }}">
+                            <i class="bi bi-newspaper me-1"></i> Mon Fil Supporter
+                        </a>
+                    </li>
+                    @elseif(auth()->user()->role === 'parent')
+                    <li class="nav-item">
+                        <a class="nav-link text-warning fw-semibold {{ request()->routeIs('parent.*') ? 'active' : '' }}"
+                           href="{{ route('parent.dashboard') }}">
+                            <i class="bi bi-people-fill me-1"></i> Espace Parent
+                        </a>
+                    </li>
+                    @endif
+                @endauth
             </ul>
 
             <div class="d-flex align-items-center gap-2">
@@ -78,18 +106,20 @@
                 </button>
 
                 @auth
-                    {{-- Messages --}}
-                    <a href="{{ route('messages.inbox') }}"
-                       class="btn btn-outline-secondary rounded-circle position-relative d-flex align-items-center justify-content-center"
-                       style="width:36px;height:36px;">
-                        <i class="bi bi-chat-dots fs-5"></i>
-                        @if($unread > 0)
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                                  style="font-size:.65rem;">
-                                {{ $unread > 9 ? '9+' : $unread }}
-                            </span>
-                        @endif
-                    </a>
+                    @if(!$user?->isSupporter())
+                        {{-- Messages --}}
+                        <a href="{{ route('messages.inbox') }}"
+                           class="btn btn-outline-secondary rounded-circle position-relative d-flex align-items-center justify-content-center"
+                           style="width:36px;height:36px;">
+                            <i class="bi bi-chat-dots fs-5"></i>
+                            @if($unread > 0)
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                      style="font-size:.65rem;">
+                                    {{ $unread > 9 ? '9+' : $unread }}
+                                </span>
+                            @endif
+                        </a>
+                    @endif
 
                     {{-- Input file caché --}}
                     <input type="file" id="navbar-avatar-input"
@@ -105,10 +135,10 @@
                             <div class="position-relative flex-shrink-0"
                                  style="width:32px;height:32px;">
 
-                                @if($avatarUrl)
+                                @if($profileImageUrl)
                                     <img id="navbar-avatar-img"
-                                         src="{{ $avatarUrl }}"
-                                         alt="Avatar"
+                                         src="{{ $profileImageUrl }}"
+                                         alt="{{ $club ? 'Logo du club' : 'Avatar' }}"
                                          class="rounded-circle object-fit-cover"
                                          style="width:32px;height:32px;">
                                 @else
@@ -168,11 +198,11 @@
                             {{-- En-tête profil --}}
                             <li class="px-3 py-2 border-bottom">
                                 <div class="d-flex align-items-center gap-2">
-                                    @if($avatarUrl)
+                                    @if($profileImageUrl)
                                         <img id="navbar-menu-img"
-                                             src="{{ $avatarUrl }}"
+                                             src="{{ $profileImageUrl }}"
                                              class="rounded-circle object-fit-cover flex-shrink-0"
-                                             style="width:40px;height:40px;" alt="Avatar">
+                                             style="width:40px;height:40px;" alt="{{ $club ? 'Logo du club' : 'Avatar' }}">
                                     @else
                                         <div id="navbar-menu-fallback"
                                              class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
@@ -191,8 +221,15 @@
                                 </div>
                             </li>
 
-                            {{-- Modifier photo --}}
+                            {{-- Modifier la photo personnelle ou le logo du club --}}
                             <li>
+                                @if($club)
+                                <a href="{{ route('club.parametres.index') }}"
+                                   class="dropdown-item d-flex align-items-center gap-2 small py-2">
+                                    <i class="bi bi-pencil-square"></i>
+                                    Modifier le logo du club
+                                </a>
+                                @else
                                 <button type="button"
                                         class="dropdown-item d-flex align-items-center gap-2 small py-2"
                                         onclick="document.getElementById('navbar-avatar-input').click()">
@@ -204,6 +241,7 @@
                                     </svg>
                                     Modifier la photo
                                 </button>
+                                @endif
                             </li>
 
                             <li><hr class="dropdown-divider my-1"></li>
@@ -220,12 +258,12 @@
                                     default     => 'dashboard',
                                 };
                                 $profileRoute = match($user->role) {
-                                    'club'      => 'club.parametres.index',
-                                    'joueur'    => 'joueur.profile',
-                                    'parent'    => 'parent.profile',
-                                    'agent'     => 'agent.profil',
-                                    'supporter' => 'supporter.profile',
-                                    'admin'     => 'admin.profile',
+                                    'club'      => \Illuminate\Support\Facades\Route::has('club.parametres.index') ? 'club.parametres.index' : null,
+                                    'joueur'    => \Illuminate\Support\Facades\Route::has('joueur.profile') ? 'joueur.profile' : (\Illuminate\Support\Facades\Route::has('joueur.profil') ? 'joueur.profil' : null),
+                                    'parent'    => \Illuminate\Support\Facades\Route::has('parent.profile') ? 'parent.profile' : null,
+                                    'agent'     => \Illuminate\Support\Facades\Route::has('agent.profil') ? 'agent.profil' : null,
+                                    'supporter' => \Illuminate\Support\Facades\Route::has('supporter.profile') ? 'supporter.profile' : (\Illuminate\Support\Facades\Route::has('supporter.profil') ? 'supporter.profil' : null),
+                                    'admin'     => \Illuminate\Support\Facades\Route::has('admin.profile') ? 'admin.profile' : null,
                                     default     => null,
                                 };
                             @endphp
@@ -246,6 +284,7 @@
                             </li>
                             @endif
 
+                            @if(!$user?->isSupporter())
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2 small py-2"
                                    href="{{ route('messages.inbox') }}">
@@ -256,6 +295,7 @@
                                     @endif
                                 </a>
                             </li>
+                            @endif
 
                             <li><hr class="dropdown-divider my-1"></li>
                                 <form method="POST" action="{{ route('logout') }}">

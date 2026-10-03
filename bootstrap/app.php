@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     $middleware->alias([
         'role'        => \App\Http\Middleware\RoleMiddleware::class,
         'abonnement'  => \App\Http\Middleware\CheckAbonnement::class,
+        'not-supporter' => \App\Http\Middleware\PreventSupporterAccess::class,
     ]);
 })
 

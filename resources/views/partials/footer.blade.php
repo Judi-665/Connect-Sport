@@ -40,9 +40,12 @@
                 <ul class="cs-footer-links">
                     <li><a href="{{ route('clubs.index') }}"><i class="bi bi-shield"></i> Clubs</a></li>
                     <li><a href="{{ route('joueurs.sans-club') }}"><i class="bi bi-people"></i> Joueurs</a></li>
-                    <li><a href="{{ route('opportunites.index') }}"><i class="bi bi-lightning"></i> Opportunités</a></li>
+                    @if(!auth()->user()?->isSupporter())
+                        <li><a href="{{ route('opportunites.index') }}"><i class="bi bi-lightning"></i> Opportunités</a></li>
+                    @endif
                     <li><a href="{{ route('register') }}"><i class="bi bi-person-plus"></i> S'inscrire</a></li>
                     <li><a href="{{ route('login') }}"><i class="bi bi-box-arrow-in-right"></i> Connexion</a></li>
+                    <li><a href="{{ route('admin.login') }}"><i class="bi bi-shield-lock"></i> Espace administration</a></li>
                 </ul>
             </div>
 

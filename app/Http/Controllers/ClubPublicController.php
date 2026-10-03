@@ -20,11 +20,24 @@ class ClubPublicController extends Controller
         return view('clubs.index', compact('clubs'));
     }
 
-    public function show($slug)
-    {
-        $club = Club::where('slug', $slug)
-            ->with(['sport', 'opportunites' => fn($q) => $q->latest()->take(5)])
-            ->firstOrFail();
-        return view('clubs.show', compact('club'));
-    }
+   public function show($slug)
+{
+    $club = Club::where('slug', $slug)
+        ->with(['sport', 'opportunites' => fn($q) => $q->latest()->take(5)])
+        ->withCount(['evenements' => fn($q) => $q->where('visibilite', 'public')])
+        ->firstOrFail();
+    return view('clubs.show', compact('club'));
+}
+
+public function agenda($slug)
+{
+    $club = Club::where('slug', $slug)->firstOrFail();
+
+    $evenements = $club->evenements()
+                       ->where('visibilite', 'public')
+                       ->orderByDesc('debut_at')
+                       ->paginate(12);
+
+    return view('clubs.agenda', compact('club', 'evenements'));
+}
 }

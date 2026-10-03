@@ -104,4 +104,11 @@ class Opportunite extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function candidatures()
+    {
+        return $this->belongsToMany(Joueur::class, 'opportunite_joueur')
+                    ->withPivot('candidature_at', 'statut')
+                    ->withTimestamps();
+    }
 }

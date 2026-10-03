@@ -166,6 +166,10 @@ public function subscriptionActive(): ?Abonnement
     return $this->hasMany(Abonnement::class)
                 ->where('statut', 'actif')
                 ->where(function ($q) {
+                    $q->whereNull('debut_at')
+                      ->orWhere('debut_at', '<=', now());
+                })
+                ->where(function ($q) {
                     $q->whereNull('fin_at')
                       ->orWhere('fin_at', '>', now());
                 })
@@ -186,6 +190,16 @@ public function peutUpgraderVers(SubscriptionPlan $plan): bool
 
     $ordre = ['gratuit' => 0, 'standard' => 1, 'premium' => 2];
     return ($ordre[$plan->slug] ?? 0) > ($ordre[$planActif->slug] ?? 0);
+}
+
+public function candidatures()
+{
+    return $this->hasMany(Candidature::class);
+}
+
+public function carrieres()
+{
+    return $this->hasMany(Carriere::class);
 }
 
 }

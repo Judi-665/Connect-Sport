@@ -52,6 +52,8 @@ class MessageController extends Controller
 
     public function send(Request $request)
     {
+        abort_if(Auth::user()->role === 'supporter', 403, 'Les supporters ne peuvent pas envoyer de messages.');
+
         $validated = $request->validate([
             'destinataire_id' => 'required|exists:users,id|different:' . Auth::id(),
             'contenu'         => 'required|string|max:2000',

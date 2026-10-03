@@ -162,6 +162,13 @@
         }
         .cs-card-title { font-size: 14px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
         .cs-card-body { padding: 20px; }
+        .directory-muted { color: var(--text2); }
+        .message-list, .message-surface { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+        .message-item { display: block; padding: 16px 18px; color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); transition: background .18s; }
+        .message-item:last-child { border-bottom: 0; }
+        .message-item:hover { background: var(--bg); color: var(--text); }
+        .message-muted { color: var(--text2); }
+        .message-bubble-incoming { background: var(--bg3); color: var(--text); }
 
         /* KPI */
         .cs-kpi {
@@ -207,6 +214,22 @@
         .btn-cs-outline:hover { background: var(--cs-primary); color: #fff; }
         .btn-cs-ghost { background: var(--bg); color: var(--text2); border: 1px solid var(--border); }
         .btn-cs-ghost:hover { background: var(--bg3); }
+        .form-label, .form-check-label { color: var(--text); }
+        .form-control, .form-select {
+            background-color: var(--card-bg);
+            border-color: var(--border);
+            color: var(--text);
+        }
+        .form-control::placeholder { color: var(--text3); }
+        .form-control:focus, .form-select:focus {
+            background-color: var(--card-bg);
+            border-color: var(--cs-primary);
+            color: var(--text);
+            box-shadow: 0 0 0 .2rem rgba(26,86,160,.18);
+        }
+        .form-select option { background: var(--card-bg); color: var(--text); }
+        .form-text { color: var(--text3); }
+        .form-control:disabled, .form-select:disabled { background-color: var(--bg3); color: var(--text3); }
 
         /* Avatar joueur */
         .cs-player-avatar {
@@ -253,12 +276,13 @@
     <div class="cs-sidebar-user">
         <div class="cs-sidebar-avatar">
             @if(auth()->user()->avatar)
-                <img src="{{ Storage::url(auth()->user()->avatar) }}" alt="">
+                <img src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="Avatar Agent" style="width:100%;height:100%;object-fit:cover;">
             @else
                 {{ strtoupper(substr(auth()->user()->prenom ?? auth()->user()->name, 0, 1)) }}
             @endif
         </div>
         <div>
+
             <div class="cs-sidebar-user-name">{{ auth()->user()->prenom ?? auth()->user()->name }}</div>
             <div class="cs-sidebar-user-role">{{ auth()->user()->role }}</div>
         </div>
@@ -280,6 +304,12 @@
             <i class="bi bi-list"></i>
         </button>
         <span class="cs-topbar-title">@yield('page-title', 'Dashboard')</span>
+        <nav class="d-none d-md-flex align-items-center gap-3 me-2" aria-label="Navigation principale">
+            <a href="{{ route('home') }}" class="small text-decoration-none {{ request()->routeIs('home') ? 'fw-bold text-primary' : 'text-secondary' }}">Accueil</a>
+            <a href="{{ route('clubs.index') }}" class="small text-decoration-none {{ request()->routeIs('clubs.*') ? 'fw-bold text-primary' : 'text-secondary' }}">Clubs</a>
+            <a href="{{ route('opportunites.index') }}" class="small text-decoration-none {{ request()->routeIs('opportunites.*') ? 'fw-bold text-primary' : 'text-secondary' }}">Opportunités</a>
+            <a href="{{ route('joueurs.sans-club') }}" class="small text-decoration-none {{ request()->routeIs('joueurs.*') ? 'fw-bold text-primary' : 'text-secondary' }}">Joueurs</a>
+        </nav>
         <div class="cs-topbar-right">
             <button class="cs-topbar-btn" onclick="toggleTheme()" id="theme-toggle" title="Thème">
                 <i class="bi bi-moon-fill"></i>
@@ -289,11 +319,102 @@
                 @php $unread = auth()->user()->messagesRecus()->where('lu', false)->count(); @endphp
                 @if($unread > 0)<span class="cs-notif-dot"></span>@endif
             </a>
-            <a href="{{ route('home') }}" class="cs-topbar-btn" title="Accueil">
-                <i class="bi bi-house"></i>
-            </a>
+
+            {{-- Menu Déroulant Profil Agent --}}
+            <div class="dropdown">
+                <button class="btn btn-sm d-flex align-items-center gap-2 border rounded-pill p-1 pe-2 dropdown-toggle text-decoration-none"
+                        type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                        style="background:var(--card-bg);border-color:var(--border) !important;">
+                    <div class="rounded-circle overflow-hidden d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                         style="width:28px;height:28px;background:#8b5cf6;font-size:12px;">
+                        @if(auth()->user()->avatar)
+                            <img src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;">
+                        @else
+                            {{ strtoupper(substr(auth()->user()->prenom ?? auth()->user()->name, 0, 1)) }}
+                        @endif
+                    </div>
+                    <span class="small fw-semibold d-none d-sm-inline" style="color:var(--text);font-size:12px;">
+                        {{ auth()->user()->prenom ?? auth()->user()->name }}
+                    </span>
+                </button>
+
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 mt-2 p-2"
+                    style="min-width:240px;background:var(--card-bg);border:1px solid var(--border) !important;">
+                    
+                    {{-- En-tête profil --}}
+                    <li class="px-3 py-2 border-bottom mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle overflow-hidden d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                                 style="width:36px;height:36px;background:#8b5cf6;font-size:14px;">
+                                @if(auth()->user()->avatar)
+                                    <img src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;">
+                                @else
+                                    {{ strtoupper(substr(auth()->user()->prenom ?? auth()->user()->name, 0, 1)) }}
+                                @endif
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="fw-bold small text-truncate" style="color:var(--text);">
+                                    {{ auth()->user()->prenom ?? '' }} {{ auth()->user()->name }}
+                                </div>
+                                <div class="text-muted text-truncate" style="font-size:11px;">
+                                    {{ auth()->user()->email }}
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    {{-- Liens du menu --}}
+                    <li>
+                        <a class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2 small" href="{{ route('agent.dashboard') }}">
+                            <i class="bi bi-grid-1x2 text-warning"></i>
+                            <span>Mon Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2 small" href="{{ route('agent.profil') }}">
+                            <i class="bi bi-person-badge text-primary"></i>
+                            <span>Mon Profil Accrédité</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2 small" href="{{ route('agent.profil') }}">
+                            <i class="bi bi-camera text-info"></i>
+                            <span>Modifier la photo</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2 small" href="{{ route('messages.inbox') }}">
+                            <i class="bi bi-chat-dots text-success"></i>
+                            <span>Messages</span>
+                            @if(isset($unread) && $unread > 0)
+                                <span class="badge bg-danger rounded-pill ms-auto" style="font-size:10px;">{{ $unread }}</span>
+                            @endif
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2 small" href="{{ route('home') }}">
+                            <i class="bi bi-house text-secondary"></i>
+                            <span>Accueil public</span>
+                        </a>
+                    </li>
+
+                    <li><hr class="dropdown-divider my-2"></li>
+
+                    {{-- Déconnexion --}}
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="dropdown-item rounded-3 d-flex align-items-center gap-2 py-2 small text-danger">
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span>Déconnexion</span>
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
+
 
     {{-- Flash --}}
     @if(session('success'))

@@ -5,10 +5,17 @@
     que de vraies opportunités sont publiées ($opportunites->count()).
     Aucun emoji, aucun sticker.
 --}}
-@extends('layouts.app')
+@extends(auth()->check() && auth()->user()->role === 'agent' ? 'layouts.agent' : 'layouts.app')
 
 @section('title', 'Opportunités sportives — Connect Sport')
 @section('description', 'Transferts, recrutements, stages, bourses — toutes les opportunités pour les joueurs et clubs d\'Afrique francophone.')
+
+@if(auth()->check() && auth()->user()->role === 'agent')
+    @section('page-title', 'Opportunités sportives')
+    @section('sidebar-nav')
+        @include('agents.partials.nav')
+    @endsection
+@endif
 
 @section('content')
 
@@ -120,8 +127,8 @@ $exemplesVisible = array_slice($exemples, $realCount);
         </div>
         <div class="col-md-4 text-md-end">
             @auth
-                @if(in_array(auth()->user()->role, ['club','agent']))
-                <a href="{{ route('opportunites.create') }}"
+                @if(auth()->user()->role === 'club')
+                <a href="{{ route('club.opportunites.create') }}"
                    class="btn btn-warning fw-bold rounded-3 px-4">
                     <i class="bi bi-plus-circle me-2"></i>Publier une opportunité
                 </a>

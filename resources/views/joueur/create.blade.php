@@ -51,26 +51,7 @@
                             <input id="ville" name="ville" value="{{ old('ville') }}" class="form-control @error('ville') is-invalid @enderror">
                             @error('ville')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6">
-                            <label for="club_id" class="form-label">Club actuel</label>
-                            <select id="club_id" name="club_id" class="form-select @error('club_id') is-invalid @enderror">
-                                <option value="">Sans club</option>
-                                @foreach($clubs as $club)
-                                    <option value="{{ $club->id }}" @selected(old('club_id') == $club->id)>{{ $club->nom }}{{ $club->ville ? ' - ' . $club->ville : '' }}</option>
-                                @endforeach
-                            </select>
-                            @error('club_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-6">
-                            <label for="equipe_id" class="form-label">Équipe</label>
-                            <select id="equipe_id" name="equipe_id" class="form-select @error('equipe_id') is-invalid @enderror">
-                                <option value="">Aucune équipe</option>
-                                @foreach($equipes as $equipe)
-                                    <option value="{{ $equipe->id }}" @selected(old('equipe_id') == $equipe->id)>{{ $equipe->nom }}</option>
-                                @endforeach
-                            </select>
-                            @error('equipe_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
+                        <div class="col-12 small text-muted">Le rattachement à un club ou à une équipe se fait après acceptation d’une candidature par le club.</div>
                         <div class="col-12">
                             <label for="bio" class="form-label">Présentation</label>
                             <textarea id="bio" name="bio" rows="4" class="form-control @error('bio') is-invalid @enderror" placeholder="Parcours, qualités et objectifs sportifs...">{{ old('bio') }}</textarea>

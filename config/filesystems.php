@@ -38,6 +38,20 @@ return [
             'report' => false,
         ],
 
+        'media_private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/media'),
+            'throw' => true,
+            'report' => true,
+        ],
+
+        'licence_private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/licences'),
+            'throw' => true,
+            'report' => true,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

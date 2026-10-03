@@ -51,4 +51,19 @@ class Supporter extends Model
                     ->wherePivot('type_abonnement', 'premium')
                     ->withTimestamps();
     }
+
+    // ═══ Helpers ═══
+
+    public function isFollowing(int|Club $club): bool
+    {
+        $clubId = $club instanceof Club ? $club->id : $club;
+        return $this->clubs()->where('clubs.id', $clubId)->exists();
+    }
+
+    public function hasNotificationsActive(int|Club $club): bool
+    {
+        $clubId = $club instanceof Club ? $club->id : $club;
+        $match = $this->clubs()->where('clubs.id', $clubId)->first();
+        return $match ? (bool) $match->pivot->notifications_actives : false;
+    }
 }

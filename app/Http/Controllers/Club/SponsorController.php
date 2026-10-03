@@ -79,7 +79,7 @@ class SponsorController extends Controller
                 'montant_confidentiel' => 'sometimes|boolean',
                 'debut_partenariat'    => 'required|date',
                 'fin_partenariat'      => 'required|date|after:debut_partenariat',
-                'logo'                 => 'nullable|image|mimes:jpg,png,svg|max:5120',
+                'logo'                 => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             ]);
 
             if ($request->hasFile('logo')) {
@@ -121,7 +121,7 @@ class SponsorController extends Controller
         'debut_partenariat'    => 'required|date',
         'fin_partenariat'      => 'required|date|after:debut_partenariat',
         'actif'                => 'sometimes|boolean',
-        'logo'                 => 'nullable|image|mimes:jpg,png,svg|max:5120',
+        'logo'                 => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
     ]);
 
     if ($request->hasFile('logo')) {

@@ -207,4 +207,33 @@ class OpportuniteController extends Controller
 
         return back()->with('success', 'Candidature envoyée');
     }
+
+    // ═══ Opportunités (côté joueur) ═══
+public function indexJoueur(Request $request)
+{
+    $joueur = Auth::user()->joueur;
+
+    if (!$joueur) {
+        return redirect()->route('joueur.profil.create');
+    }
+
+    $query = Opportunite::active()->nonExpirees()->with('club');
+
+    if ($request->filled('type')) {
+        $query->where('type', $request->type);
+    }
+    if ($request->filled('search')) {
+        $query->where(function ($q) use ($request) {
+            $q->where('titre', 'like', '%' . $request->search . '%')
+              ->orWhere('poste_cible', 'like', '%' . $request->search . '%');
+        });
+    }
+
+    $opportunites = $query->orderByDesc('mise_en_avant')->orderByDesc('created_at')->paginate(12);
+
+    // IDs des opportunités déjà candidatées, pour affichage conditionnel dans la vue
+    $candidatures = $joueur->opportunites()->pluck('opportunite_joueur.statut', 'opportunites.id');
+
+    return view('joueurs.opportunites.index', compact('opportunites', 'candidatures'));
+}
 }

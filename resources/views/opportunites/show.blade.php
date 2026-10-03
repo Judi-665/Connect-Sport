@@ -85,7 +85,7 @@
                                     <i class="bi bi-envelope-paper-fill fs-5"></i>
                                     <span>Vous êtes intéressé(e) ? Postulez directement via la messagerie.</span>
                                 </div>
-                                <a href="{{ route('messages.create', ['receiver_id' => $opportunite->club->user_id ?? 0]) }}" class="btn btn-warning rounded-pill px-4 py-2 fw-semibold">
+                                <a href="{{ route('messages.conversation', ['user' => $opportunite->club->user_id]) }}" class="btn btn-warning rounded-pill px-4 py-2 fw-semibold">
                                     <i class="bi bi-send me-2"></i>Postuler maintenant
                                 </a>
                             @else

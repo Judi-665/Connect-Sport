@@ -207,13 +207,13 @@
                         <div class="row g-3">
                             @foreach($evenement->medias as $media)
                                 <div class="col-sm-6 col-md-4">
-                                    <a href="{{ Storage::url($media->fichier) }}"
+                                    <a href="{{ $media->url() }}"
                                        class="d-block overflow-hidden rounded-3"
                                        style="height:150px;object-fit:cover;"
                                        data-bs-toggle="modal"
                                        data-bs-target="#mediaModal{{ $media->id }}">
                                         @if(in_array(strtolower(pathinfo($media->fichier, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif']))
-                                            <img src="{{ Storage::url($media->fichier) }}"
+                                            <img src="{{ $media->url() }}"
                                                  alt="Média"
                                                  style="width:100%;height:100%;object-fit:cover;">
                                         @else
@@ -255,9 +255,9 @@
                                         <tr>
                                             <td class="fw-semibold">{{ $joueur->nomComplet() }}</td>
                                             <td class="text-center">{{ $stats->sum('buts') }}</td>
-                                            <td class="text-center">{{ $stats->sum('passes') }}</td>
+                                            <td class="text-center">{{ $stats->sum('passes_decisives') }}</td>
                                             <td class="text-center">
-                                                @php $cartons = $stats->where('carton', '!=', null)->count(); @endphp
+                                                @php $cartons = $stats->sum('cartons_jaunes') + $stats->sum('cartons_rouges'); @endphp
                                                 @if($cartons > 0)
                                                     <span class="badge bg-warning">{{ $cartons }}</span>
                                                 @else
@@ -319,6 +319,10 @@
             {{-- Actions rapides --}}
             <div class="card border-0 shadow-sm rounded-4 bg-light">
                 <div class="card-body px-4 py-3">
+                    <a href="{{ route('club.agenda.stats.create', $evenement) }}"
+                       class="btn btn-success w-100 rounded-pill mb-2">
+                        <i class="bi bi-shield-check me-1"></i> Saisir les statistiques
+                    </a>
                     <a href="{{ route('club.agenda.edit', $evenement) }}"
                        class="btn btn-warning w-100 rounded-pill mb-2">
                         <i class="bi bi-pencil me-1"></i> Modifier cet événement
@@ -338,37 +342,36 @@
 <script>
     {{-- Suppression avec confirmation --}}
     document.addEventListener('click', function(e) {
-        if (e.target.closest('[data-action="supprimer"]')) {
-            const btn = e.target.closest('[data-action="supprimer"]');
-            const id = btn.dataset.id;
-            const titre = btn.dataset.titre;
+    if (e.target.closest('[data-action="supprimer"]')) {
+        const btn = e.target.closest('[data-action="supprimer"]');
+        const titre = btn.dataset.titre;
 
-            if (!confirm(`Êtes-vous sûr de vouloir supprimer l'événement "${titre}" ?\n\nCette action est irréversible.`)) {
-                return;
-            }
-
-            btn.disabled = true;
-
-            fetch(`{{ route('club.agenda.destroy', '') }}/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-Token': document.querySelector('[name="_token"]').value,
-                    'Accept': 'application/json',
-                },
-            })
-            .then(res => res.json())
-            .then(data => {
-                afficherToast('Événement supprimé.', 'success');
-                setTimeout(() => {
-                    window.location.href = '{{ route('club.agenda.index') }}';
-                }, 1500);
-            })
-            .catch(err => {
-                afficherToast('Erreur lors de la suppression.', 'danger');
-                btn.disabled = false;
-            });
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer l'événement "${titre}" ?\n\nCette action est irréversible.`)) {
+            return;
         }
-    });
+
+        btn.disabled = true;
+
+        fetch(`{{ route('club.agenda.destroy', $evenement) }}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-Token': document.querySelector('[name="_token"]').value,
+                'Accept': 'application/json',
+            },
+        })
+        .then(res => res.json())
+        .then(data => {
+            afficherToast('Événement supprimé.', 'success');
+            setTimeout(() => {
+                window.location.href = '{{ route('club.agenda.index') }}';
+            }, 1500);
+        })
+        .catch(err => {
+            afficherToast('Erreur lors de la suppression.', 'danger');
+            btn.disabled = false;
+        });
+    }
+});
 
     function afficherToast(message, type = 'success') {
         const id = 'toast-' + Date.now();

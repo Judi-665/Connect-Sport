@@ -4,10 +4,17 @@
     Couleurs : orange/warning (même palette qu'opportunites/index).
     Routes : joueurs.index / joueurs.show (préfixe défini dans web.php).
 --}}
-@extends('layouts.app')
+@extends(auth()->check() && auth()->user()->role === 'agent' ? 'layouts.agent' : 'layouts.app')
 
 @section('title', 'Joueurs disponibles — Connect Sport')
 @section('description', 'Découvrez les joueurs inscrits sur Connect Sport, disponibles pour un club ou une opportunité.')
+
+@if(auth()->check() && auth()->user()->role === 'agent')
+    @section('page-title', 'Joueurs disponibles')
+    @section('sidebar-nav')
+        @include('agents.partials.nav')
+    @endsection
+@endif
 
 @section('content')
 
@@ -244,6 +251,8 @@ $exemplesVisible = array_slice($exemples, $realCount);
             @php
                 $dispo = $joueur->disponible ?? true;
                 $dc    = $disponibleConfig[$dispo];
+                $nomAffiche = trim(($joueur->user?->prenom ?? '') . ' ' . ($joueur->user?->name ?? '')) ?: 'Joueur';
+                $initiale   = strtoupper(substr($joueur->user?->prenom ?? $joueur->user?->name ?? '?', 0, 1) . substr($joueur->user?->name ?? '', 0, 1));
             @endphp
             <div class="col-md-6 col-lg-4">
                 <a href="{{ route('joueurs.show', $joueur->id) }}"
@@ -252,9 +261,9 @@ $exemplesVisible = array_slice($exemples, $realCount);
 
                         {{-- Header avec photo --}}
                         <div class="d-flex align-items-center gap-3 mb-3">
-                            @if($joueur->avatar)
-                                <img src="{{ Storage::url($joueur->avatar) }}"
-                                     alt="{{ $joueur->prenom }} {{ $joueur->nom }}"
+                            @if($joueur->user?->avatar)
+                                <img src="{{ asset('storage/' . $joueur->user->avatar) }}"
+                                     alt="{{ $nomAffiche }}"
                                      class="rounded-circle flex-shrink-0 border"
                                      width="60" height="60"
                                      style="object-fit:cover;border-width:2px!important;border-color:#F97316!important;">
@@ -265,12 +274,12 @@ $exemplesVisible = array_slice($exemples, $realCount);
                                             color:#F97316;
                                             font-family:'Bebas Neue',sans-serif;
                                             font-size:22px;">
-                                    {{ strtoupper(substr($joueur->prenom ?? $joueur->name ?? '?', 0, 1)) }}{{ strtoupper(substr($joueur->nom ?? '', 0, 1)) }}
+                                    {{ $initiale }}
                                 </div>
                             @endif
                             <div class="overflow-hidden flex-grow-1">
                                 <h5 class="fw-bold text-truncate mb-0" style="font-size:.93rem;">
-                                    {{ $joueur->prenom }} {{ $joueur->nom }}
+                                    {{ $nomAffiche }}
                                 </h5>
                                 <div class="text-body-secondary" style="font-size:.75rem;">
                                     {{ $joueur->poste ?? 'Poste non renseigné' }}
@@ -290,9 +299,9 @@ $exemplesVisible = array_slice($exemples, $realCount);
                                 <i class="bi bi-geo-alt me-1"></i>{{ $joueur->pays }}
                             </span>
                             @endif
-                            @if($joueur->age)
+                            @if($joueur->age())
                             <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary" style="font-size:.68rem;">
-                                <i class="bi bi-calendar3 me-1"></i>{{ $joueur->age }} ans
+                                <i class="bi bi-calendar3 me-1"></i>{{ $joueur->age() }} ans
                             </span>
                             @endif
                             @if($joueur->taille)
@@ -314,10 +323,14 @@ $exemplesVisible = array_slice($exemples, $realCount);
                         </p>
 
                         {{-- Stats --}}
-                        @if($joueur->statistiques && count($joueur->statistiques) > 0)
+                        @if($joueur->statistiques->isNotEmpty())
                         <div class="mb-3 p-2 rounded-3 d-flex gap-3 justify-content-around"
                              style="background:var(--bs-tertiary-bg);border:1px solid var(--bs-border-color);">
-                            @foreach(array_slice($joueur->statistiques->toArray(), 0, 3) as $label => $val)
+                            @foreach([
+                                'Matchs' => $joueur->statistiques->sum('matchs_joues'),
+                                'Buts'   => $joueur->statistiques->sum('buts'),
+                                'Passes' => $joueur->statistiques->sum('passes_decisives'),
+                            ] as $label => $val)
                             <div class="text-center">
                                 <div class="fw-black lh-1"
                                      style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#F97316;">
@@ -347,13 +360,17 @@ $exemplesVisible = array_slice($exemples, $realCount);
 
             {{-- Exemples (disparaissent un à un) --}}
             @foreach($exemplesVisible as $ex)
-            @php $dc = $disponibleConfig[$ex['disponible']]; @endphp
+            @php
+                $dispo = $ex['disponible'];
+                $dc    = $disponibleConfig[$dispo];
+                $initiale = strtoupper(substr($ex['prenom'], 0, 1) . substr($ex['nom'], 0, 1));
+            @endphp
             <div class="col-md-6 col-lg-4">
                 <a href="{{ route('register') }}"
                    class="text-decoration-none text-body cs-joueur-card cs-joueur-exemple d-block rounded-4 border h-100">
                     <div class="p-4 h-100 d-flex flex-column">
 
-                        {{-- Header initiales --}}
+                        {{-- Header avec initiales --}}
                         <div class="d-flex align-items-center gap-3 mb-3">
                             <div class="rounded-circle fw-black d-flex align-items-center justify-content-center flex-shrink-0"
                                  style="width:60px;height:60px;
@@ -361,7 +378,7 @@ $exemplesVisible = array_slice($exemples, $realCount);
                                         color:#F97316;
                                         font-family:'Bebas Neue',sans-serif;
                                         font-size:22px;">
-                                {{ strtoupper(substr($ex['prenom'], 0, 1)) }}{{ strtoupper(substr($ex['nom'], 0, 1)) }}
+                                {{ $initiale }}
                             </div>
                             <div class="overflow-hidden flex-grow-1">
                                 <h5 class="fw-bold text-truncate mb-0" style="font-size:.93rem;">
@@ -398,7 +415,7 @@ $exemplesVisible = array_slice($exemples, $realCount);
                         {{-- Biographie --}}
                         <p class="text-body-secondary flex-grow-1 mb-3"
                            style="font-size:.80rem;line-height:1.6;">
-                            {{ Str::limit($ex['biographie'], 110) }}
+                            {{ $ex['biographie'] }}
                         </p>
 
                         {{-- Stats --}}
@@ -415,26 +432,13 @@ $exemplesVisible = array_slice($exemples, $realCount);
                             @endforeach
                         </div>
 
-                        {{-- Réalisations --}}
-                        <div class="mb-3 p-2 rounded-3"
-                             style="background:var(--bs-tertiary-bg);border:1px solid var(--bs-border-color);">
-                            @foreach($ex['realisations'] as $r)
-                            <div class="d-flex align-items-center gap-2"
-                                 style="font-size:.73rem;{{ !$loop->last ? 'margin-bottom:4px;' : '' }}">
-                                <div class="rounded-circle flex-shrink-0"
-                                     style="width:5px;height:5px;background:#F97316;"></div>
-                                <span class="text-body-secondary">{{ $r }}</span>
-                            </div>
-                            @endforeach
-                        </div>
-
                         {{-- Footer --}}
                         <div class="d-flex align-items-center justify-content-between pt-2 border-top">
-                            <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning" style="font-size:.68rem;">
-                                <i class="bi bi-geo-alt me-1"></i>{{ $ex['ville'] }}
+                            <span class="badge bg-warning bg-opacity-10 text-warning" style="font-size:.68rem;">
+                                Profil Démonstration
                             </span>
                             <span class="fw-semibold text-warning" style="font-size:.72rem;">
-                                &bull; Rejoindre
+                                Créer mon profil &rarr;
                             </span>
                         </div>
 
@@ -446,8 +450,10 @@ $exemplesVisible = array_slice($exemples, $realCount);
         </div>
 
         {{-- Pagination --}}
-        @if(isset($joueurs) && $joueurs->hasPages())
-        <div class="mt-5">{{ $joueurs->links() }}</div>
+        @if(isset($joueurs) && method_exists($joueurs, 'hasPages') && $joueurs->hasPages())
+        <div class="mt-5">
+            {{ $joueurs->links() }}
+        </div>
         @endif
 
         {{-- Notice exemples --}}
@@ -457,18 +463,20 @@ $exemplesVisible = array_slice($exemples, $realCount);
             <div class="rounded-circle flex-shrink-0"
                  style="width:7px;height:7px;background:#F97316;"></div>
             <p class="text-body-secondary mb-0" style="font-size:.76rem;">
+                Vous êtes joueur ? 
                 <a href="{{ route('register') }}" class="text-warning fw-semibold ms-1">
-                    Créez votre profil joueur gratuitement.
+                    Rejoignez Connect Sport gratuitement pour être visible auprès des clubs et agents.
                 </a>
             </p>
         </div>
         @endif
 
     @else
+        {{-- État vide --}}
         <div class="text-center py-5">
             <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
                  style="width:64px;height:64px;background:var(--bs-tertiary-bg);">
-                <i class="bi bi-person-x text-body-tertiary fs-3"></i>
+                <i class="bi bi-people text-body-tertiary fs-3"></i>
             </div>
             <p class="fw-semibold mb-1">Aucun joueur ne correspond à vos critères.</p>
             <p class="text-body-secondary mb-3" style="font-size:.84rem;">
@@ -493,7 +501,7 @@ $exemplesVisible = array_slice($exemples, $realCount);
     box-shadow: 0 8px 24px rgba(249,115,22,.1);
     border-color: #F97316 !important;
 }
-.cs-joueur-exemple { opacity: .85; }
+.cs-joueur-exemple { opacity: .9; }
 .cs-joueur-exemple:hover { opacity: 1; }
 </style>
 

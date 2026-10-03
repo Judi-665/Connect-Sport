@@ -227,4 +227,53 @@ class TransfertController extends Controller
             'note' => $note,
         ]);
     }
+
+    public function createJoueur()
+{
+    $joueur = Auth::user()->joueur;
+
+    if (!$joueur->club_id) {
+        return redirect()->route('joueur.candidatures.index')
+                         ->with('error', "Vous devez d'abord appartenir à un club pour demander un transfert.");
+    }
+
+    $clubs = Club::actif()->where('id', '!=', $joueur->club_id)->get();
+
+    return view('joueur.transferts.create', compact('clubs', 'joueur'));
+}
+
+// ═══ Côté joueur : envoyer la demande ═══
+public function storeJoueur(Request $request)
+{
+    $joueur = Auth::user()->joueur;
+
+    if (!$joueur->club_id) {
+        abort(403, "Vous n'appartenez à aucun club.");
+    }
+
+    $validated = $request->validate([
+        'club_destinataire_id' => 'required|exists:clubs,id',
+        'type'                 => 'required|in:definitif,pret',
+        'note_joueur'          => 'nullable|string|max:500',
+    ]);
+
+    if ((int) $validated['club_destinataire_id'] === $joueur->club_id) {
+        return back()->withErrors(['club_destinataire_id' => 'Vous ne pouvez pas demander un transfert vers votre club actuel.']);
+    }
+
+    $transfert = Transfert::create([
+        'joueur_id'            => $joueur->id,
+        'club_source_id'       => $joueur->club_id,
+        'club_destinataire_id' => $validated['club_destinataire_id'],
+        'type'                 => $validated['type'],
+        'note_joueur'          => $validated['note_joueur'] ?? null,
+        'statut'               => 'en_attente',
+        'initiee_par'          => 'joueur',
+    ]);
+
+    $this->recordHistory($transfert, null, 'en_attente', $validated['note_joueur'] ?? null);
+
+    return redirect()->route('joueur.transferts.index')
+                     ->with('success', 'Votre demande a été envoyée à votre club actuel pour validation.');
+}
 }

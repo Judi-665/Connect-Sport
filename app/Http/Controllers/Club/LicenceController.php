@@ -55,26 +55,31 @@ class LicenceController extends Controller
     // ═══ Enregistrer licence ═══
     public function store(Request $request)
 {
-    $request->validate([
+    $data = $request->validate([
         'joueur_id'       => 'required|exists:joueurs,id',
         'numero_licence'  => 'nullable|string|max:80|unique:licences,numero_licence',
         'categorie'       => 'required|in:junior,cadet,senior,veteran',
         'date_debut'      => 'required|date',
         'date_expiration' => 'required|date|after:date_debut',
         'fichier_pdf'     => 'required|file|mimes:pdf|max:5120',
-        'note'            => 'nullable|string',
+        'note'            => 'nullable|string|max:5000',
     ]);
 
     $club    = Auth::user()->club;
-    $pdfPath = $request->file('fichier_pdf')
-                       ->store('licences/' . $club->id, 'public');
+    abort_unless($club, 403);
+    abort_unless($club->joueurs()->whereKey($data['joueur_id'])->exists(), 403,
+        'Ce joueur ne fait pas partie de votre club.');
 
-    Licence::where('joueur_id', $request->joueur_id)
+    $pdfPath = $request->file('fichier_pdf')
+                       ->store('licences/' . $club->id, 'licence_private');
+
+    Licence::where('club_id', $club->id)
+           ->where('joueur_id', $data['joueur_id'])
            ->where('active', 1)
            ->update(['active' => 0]);
 
     $licence = Licence::create([
-        'joueur_id'       => $request->joueur_id,
+        'joueur_id'       => $data['joueur_id'],
         'club_id'         => $club->id,
         'numero_licence'  => $request->numero_licence,
         'fichier_pdf'     => $pdfPath,
@@ -102,7 +107,15 @@ class LicenceController extends Controller
     // ═══ Télécharger PDF ═══
     public function download(Licence $licence)
     {
-        return response()->download(storage_path('app/public/' . $licence->fichier_pdf));
+        $this->autoriserAcces($licence);
+
+        abort_unless(Storage::disk('licence_private')->exists($licence->fichier_pdf), 404);
+
+        return response()->download(
+            Storage::disk('licence_private')->path($licence->fichier_pdf),
+            basename($licence->fichier_pdf),
+            ['X-Content-Type-Options' => 'nosniff']
+        );
     }
 
     // ═══ Renouveler licence ═══
@@ -120,7 +133,7 @@ class LicenceController extends Controller
 
             $club    = Auth::user()->club;
             $pdfPath = $request->file('fichier_pdf')
-                            ->store('licences/' . $club->id, 'public');
+                            ->store('licences/' . $club->id, 'licence_private');
 
             $nouvelle = Licence::create([
                 'joueur_id'       => $licence->joueur_id,
@@ -148,7 +161,7 @@ class LicenceController extends Controller
     public function destroy(Licence $licence)
         {
             $this->autoriserAcces($licence);
-            Storage::disk('public')->delete($licence->fichier_pdf);
+            Storage::disk('licence_private')->delete($licence->fichier_pdf);
             $licence->delete();
 
             return response()->json(['message' => 'Licence supprimée.']);

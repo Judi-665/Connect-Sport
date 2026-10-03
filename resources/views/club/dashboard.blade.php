@@ -3,6 +3,13 @@
 
 @section('title', 'Dashboard — ' . ($club->nom ?? 'Mon Club'))
 
+@php
+    $planAbonnement = $abonnementActif?->subscriptionPlan;
+    $planSlug = $planAbonnement?->slug ?? $abonnementActif?->plan ?? 'gratuit';
+    $planNom = $planAbonnement?->nom ?? ucfirst($planSlug);
+    $estPremium = $planSlug === 'premium';
+@endphp
+
 @push('styles')
 <style>
 /* ── Layout général ── */
@@ -349,22 +356,25 @@ body.sidebar-collapsed .cs-dash__main { margin-left: 64px; }
                     <div class="cs-side-card">
                         <div class="cs-side-card__title">
                             <i class="bi bi-gem"></i> Mon abonnement
-                            <span class="ms-auto cs-tag {{ $club->abonnement === 'premium' ? 'cs-tag--warning' : 'cs-tag--neutral' }}">
-                                {{ ucfirst($club->abonnement ?? 'gratuit') }}
+                            <span class="ms-auto cs-tag {{ $estPremium ? 'cs-tag--warning' : 'cs-tag--neutral' }}">
+                                {{ $planNom }}
                             </span>
                         </div>
                         <div class="progress mb-3" style="height:6px;border-radius:10px;">
                             <div class="progress-bar" role="progressbar"
-                                 style="width:{{ $club->abonnement === 'premium' ? '100' : '30' }}%;background:#F97316;border-radius:10px;">
+                                 style="width:{{ $estPremium ? '100' : ($planSlug === 'standard' ? '65' : '30') }}%;background:#F97316;border-radius:10px;">
                             </div>
                         </div>
-                        @if(($club->abonnement ?? 'gratuit') !== 'premium')
-                            <a href="#" class="btn btn-warning btn-sm w-100 fw-semibold rounded-pill">
+                        @if(!$estPremium)
+                            <a href="{{ route('club.abonnement.index') }}" class="btn btn-warning btn-sm w-100 fw-semibold rounded-pill">
                                 <i class="bi bi-arrow-up-circle me-1"></i> Passer à Premium
                             </a>
                         @else
                             <div class="text-success small text-center">
-                                <i class="bi bi-check-circle-fill me-1"></i> Accès illimité actif
+                                <i class="bi bi-check-circle-fill me-1"></i> Abonnement Premium actif
+                                @if($abonnementActif?->fin_at)
+                                    <span class="d-block text-muted mt-1">Expire le {{ $abonnementActif->fin_at->format('d/m/Y') }}</span>
+                                @endif
                             </div>
                         @endif
                     </div>

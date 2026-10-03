@@ -23,11 +23,13 @@ class Agent extends Model
         'site_web',
         'verifie',
         'actif',
+        'mise_en_avant',
     ];
 
     protected $casts = [
         'verifie' => 'boolean',
         'actif'   => 'boolean',
+        'mise_en_avant' => 'boolean',
     ];
 
     // ═══ Scopes ═══
@@ -94,4 +96,53 @@ class Agent extends Model
                     ->withPivot('statut', 'dernier_contact_at')
                     ->withTimestamps();
     }
+
+    public function scopeAvecMandatsExpirantBientot(Builder $query, int $jours = 30): Builder
+{
+    return $query; // placeholder si besoin de filtrer une liste d'agents plus tard
+}
+
+public function mandatsExpirantBientot(int $jours = 30)
+{
+    return $this->joueurs()
+                ->wherePivot('statut', 'actif')
+                ->wherePivot('fin_mandat', '<=', now()->addDays($jours)->format('Y-m-d'))
+                ->wherePivot('fin_mandat', '>=', now()->format('Y-m-d'));
+}
+
+public function abonnements()
+{
+    return $this->hasMany(Abonnement::class);
+}
+
+public function subscriptionActive(): ?Abonnement
+{
+    return $this->hasMany(Abonnement::class)
+                ->where('statut', 'actif')
+                ->where(fn($q) => $q->whereNull('fin_at')->orWhere('fin_at', '>', now()))
+                ->with('subscriptionPlan')
+                ->latest()
+                ->first();
+}
+
+public function planActif(): ?SubscriptionPlan
+{
+    return $this->subscriptionActive()?->subscriptionPlan;
+}
+
+public function niveauPlan(): string
+{
+    $slug = $this->planActif()?->slug ?? 'gratuit';
+    return \Illuminate\Support\Str::before($slug, '-');
+}
+
+public function estStandardOuPlus(): bool
+{
+    return in_array($this->niveauPlan(), ['standard', 'premium']);
+}
+
+public function estPremium(): bool
+{
+    return $this->niveauPlan() === 'premium';
+}
 }

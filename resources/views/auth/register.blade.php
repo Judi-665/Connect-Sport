@@ -146,7 +146,7 @@
             </div>
 
             {{-- ══════════════════════════════════════
-                 JOUEUR — rattaché à un club existant
+                 JOUEUR — rattachement après acceptation du club
             ══════════════════════════════════════ --}}
             <div id="fields_joueur" class="role-fields rounded-4 p-4 mb-3 d-none"
                  style="background:var(--card-bg);border:1px solid var(--border);box-shadow:var(--shadow);">
@@ -199,8 +199,8 @@
                         <label class="cs-label">Catégorie</label>
                         <select name="categorie" class="form-select cs-input rounded-3">
                             <option value="">Sélectionner</option>
-                            @foreach(['Junior','Cadet','Senior','Vétéran'] as $cat)
-                            <option value="{{ $cat }}" @selected(old('categorie')===$cat)>{{ $cat }}</option>
+                            @foreach(['junior' => 'Junior', 'cadet' => 'Cadet', 'senior' => 'Senior', 'veteran' => 'Vétéran'] as $value => $label)
+                            <option value="{{ $value }}" @selected(old('categorie') === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -215,22 +215,7 @@
                                placeholder="Ex: 178" min="100" max="250"
                                value="{{ old('taille') }}">
                     </div>
-                    <div class="col-12">
-                        <label class="cs-label">Club d'appartenance</label>
-                        <select name="club_id" class="form-select cs-input rounded-3">
-                            <option value="">-- Sans club pour l'instant --</option>
-                            @if(isset($clubs) && $clubs->count())
-                                @foreach($clubs as $club)
-                                <option value="{{ $club->id }}" @selected(old('club_id')==$club->id)>
-                                    {{ $club->nom }} — {{ $club->ville ?? '' }}
-                                </option>
-                                @endforeach
-                            @endif
-                        </select>
-                        <small style="color:var(--text3);font-size:11px;">
-                            Si votre club n'est pas listé, il devra s'inscrire sur Connect Sport.
-                        </small>
-                    </div>
+                    <div class="col-12 small text-muted">Votre profil démarre sans club. Le rattachement ne sera effectué qu’après acceptation d’une candidature par le club.</div>
                     <div class="col-12">
                         <label class="cs-label">Disponibilité</label>
                         <div class="d-flex gap-3 mt-1">
@@ -388,22 +373,7 @@
                         <input type="text" name="parent_pays" class="form-control cs-input rounded-3"
                                placeholder="Ex: Bénin" value="{{ old('parent_pays') }}">
                     </div>
-                    <div class="col-12">
-                        <label class="cs-label">Club de l'enfant</label>
-                        <select name="club_id" class="form-select cs-input rounded-3">
-                            <option value="">-- Choisir le club de votre enfant --</option>
-                            @if(isset($clubs) && $clubs->count())
-                                @foreach($clubs as $club)
-                                <option value="{{ $club->id }}" @selected(old('club_id')==$club->id)>
-                                    {{ $club->nom }} — {{ $club->ville ?? '' }}
-                                </option>
-                                @endforeach
-                            @endif
-                        </select>
-                        <small style="color:var(--text3);font-size:11px;">
-                            Vous pourrez lier le profil de votre enfant depuis votre tableau de bord.
-                        </small>
-                    </div>
+                    <div class="col-12 small text-muted">Vous pourrez demander un lien avec le profil du joueur depuis votre tableau de bord. Le joueur devra le confirmer.</div>
                 </div>
             </div>
 

@@ -87,9 +87,18 @@
                                 <div class="col-md-6">
                                     <label class="form-label small fw-semibold text-muted mb-1">Abonnement</label>
                                     <div class="form-control bg-body-secondary border-0 rounded-3 d-flex justify-content-between align-items-center">
-                                        <span>{{ ucfirst(optional($club)->abonnement ?? 'gratuit') }}</span>
-                                        <span class="badge bg-success-subtle text-success fw-semibold">✓ Actif</span>
+                                        <span>{{ ucfirst($planActif?->nom ?? $planActif?->slug ?? 'Gratuit') }}</span>
+                                        @if($abonnementActif)
+                                            <span class="badge bg-success-subtle text-success fw-semibold">✓ Actif</span>
+                                        @else
+                                            <span class="badge bg-secondary-subtle text-secondary fw-semibold">Inactif</span>
+                                        @endif
                                     </div>
+                                    @if($abonnementActif?->fin_at)
+                                        <div class="form-text">
+                                            Expire le {{ $abonnementActif->fin_at->format('d/m/Y') }}
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small fw-semibold text-muted mb-1">Ville</label>

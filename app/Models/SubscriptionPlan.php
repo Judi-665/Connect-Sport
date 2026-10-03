@@ -10,9 +10,11 @@ class SubscriptionPlan extends Model
     protected $fillable = [
         'nom',
         'slug',
+        'type_acteur',
         'prix',
         'frequence',
         'max_equipes',
+        'max_joueurs_representes',
         'multi_equipes',
         'gestion_licences',
         'agenda',
@@ -27,6 +29,7 @@ class SubscriptionPlan extends Model
 
     protected $casts = [
         'multi_equipes'         => 'boolean',
+        'max_joueurs_representes' => 'integer',
         'gestion_licences'      => 'boolean',
         'agenda'                => 'boolean',
         'stats_avancees'        => 'boolean',

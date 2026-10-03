@@ -26,7 +26,7 @@ class VerifierAbonnementsExpires implements ShouldQueue
             ->each(function ($ab) {
                 $ab->update(['statut' => 'expire']);
 
-                $typeActeur = $ab->club_id ? 'club' : 'joueur';
+                $typeActeur = $ab->agent_id ? 'agent' : ($ab->club_id ? 'club' : 'joueur');
                 $planGratuit = SubscriptionPlan::where('slug', 'gratuit')
                     ->where('type_acteur', $typeActeur)->first();
 
@@ -34,6 +34,7 @@ class VerifierAbonnementsExpires implements ShouldQueue
                     Abonnement::create([
                         'club_id'              => $ab->club_id,
                         'joueur_id'            => $ab->joueur_id,
+                        'agent_id'             => $ab->agent_id,
                         'subscription_plan_id' => $planGratuit->id,
                         'plan'                 => 'gratuit',
                         'montant'              => 0,
@@ -42,6 +43,10 @@ class VerifierAbonnementsExpires implements ShouldQueue
                         'debut_at'             => now(),
                         'fin_at'               => null,
                     ]);
+                }
+
+                if ($ab->agent) {
+                    $ab->agent->update(['mise_en_avant' => false]);
                 }
 
                 $ab->abonnable()?->user?->notify(new AbonnementExpireNotification($ab));

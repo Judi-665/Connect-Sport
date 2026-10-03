@@ -12,10 +12,10 @@
 
     // Plan actif — source de vérité : abonnements (même logique que le club)
     $subActif  = $joueur?->subscriptionActive();
-    $planSlug  = $subActif?->plan?->slug ?? 'gratuit';
+    $planSlug  = $subActif?->subscriptionPlan?->slug ?? 'gratuit';
     $isStandard = in_array($planSlug, ['standard', 'premium']);
     $isPremium  = $planSlug === 'premium';
-    $planNom    = $subActif?->plan?->nom ?? ucfirst($planSlug);
+    $planNom    = $subActif?->subscriptionPlan?->nom ?? ucfirst($planSlug);
     $options    = [
         ['label' => 'Options Standard', 'active' => $isStandard],
         ['label' => 'Options Premium', 'active' => $isPremium],
@@ -35,7 +35,7 @@
         ? route($route)
         : route('joueur.locked', ['fonction' => $route, 'plan' => 'premium']);
 @endphp
-
+.......
 {{-- Overlay mobile --}}
 <div id="sidebar-overlay"
      class="d-none position-fixed top-0 start-0 w-100 h-100"
@@ -133,16 +133,24 @@
                 </a>
             </li>
 
-            {{-- Difficultés & Souhaits — gratuit  --}}
             <li>
-                <a href="{{ route('joueur.difficultes.index') }}"
+                <a href="{{ route('joueur.parents.demandes') }}"
                    class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
-                          {{ request()->routeIs('joueur.difficultes.*') ? 'sidebar-link-active' : 'text-secondary' }}">
-                    <i class="bi bi-chat-dots fs-6"></i>
-                    <span class="small fw-medium sidebar-text">Difficultés & Souhaits</span>
+                          {{ request()->routeIs('joueur.parents.*') ? 'sidebar-link-active' : 'text-secondary' }}">
+                    <i class="bi bi-people fs-6"></i>
+                    <span class="small fw-medium sidebar-text">Demandes de parents</span>
                 </a>
             </li>
 
+            {{-- Agenda du club — gratuit --}}
+        <li>
+            <a href="{{ route('joueur.agenda.index') }}"
+            class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
+                    {{ request()->routeIs('joueur.agenda.*') ? 'sidebar-link-active' : 'text-secondary' }}">
+                <i class="bi bi-calendar-event fs-6"></i>
+                <span class="small fw-medium sidebar-text">Agenda</span>
+            </a>
+        </li>
             {{-- Carrière — standard --}}
             <li>
                 <a href="{{ $urlStandard('joueur.carriere.index') }}"
@@ -199,21 +207,23 @@
                 </a>
             </li>
 
-            {{-- IA Recommandations — premium  --}}
-            <li>
-                <a href="{{ $urlPremium('joueur.carriere.recommandations') }}"
-                   class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
-                          {{ !$isPremium ? 'sidebar-link-locked' : '' }}
-                          {{ request()->routeIs('joueur.carriere.recommandations') ? 'sidebar-link-active' : 'text-secondary' }}"
-                   title="{{ $isPremium ? 'IA Recommandations' : 'IA Recommandations — Plan Premium requis' }}">
-                    <i class="bi bi-robot fs-6 {{ !$isPremium ? 'text-muted' : '' }}"></i>
-                    <span class="small fw-medium sidebar-text {{ !$isPremium ? 'text-muted' : '' }}">IA </span>
-                    @if(!$isPremium)
-                        <i class="bi bi-lock ms-auto text-muted"></i>
-                        <span class="badge bg-warning text-dark rounded-pill sidebar-text ms-1" style="font-size:8px;padding:2px 6px;">Premium</span>
-                    @endif
-                </a>
-            </li>
+            {{-- IA Recommandations — premium (module IA pas encore construit) --}}
+        @if(Route::has('joueur.carriere.recommandations'))
+        <li>
+            <a href="{{ $urlPremium('joueur.carriere.recommandations') }}"
+            class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
+                    {{ !$isPremium ? 'sidebar-link-locked' : '' }}
+                    {{ request()->routeIs('joueur.carriere.recommandations') ? 'sidebar-link-active' : 'text-secondary' }}"
+            title="{{ $isPremium ? 'IA Recommandations' : 'IA Recommandations — Plan Premium requis' }}">
+                <i class="bi bi-robot fs-6 {{ !$isPremium ? 'text-muted' : '' }}"></i>
+                <span class="small fw-medium sidebar-text {{ !$isPremium ? 'text-muted' : '' }}">IA </span>
+                @if(!$isPremium)
+                    <i class="bi bi-lock ms-auto text-muted"></i>
+                    <span class="badge bg-warning text-dark rounded-pill sidebar-text ms-1" style="font-size:8px;padding:2px 6px;">Premium</span>
+                @endif
+            </a>
+        </li>
+        @endif
 
             {{-- Abonnement — tous  --}}
             <li>

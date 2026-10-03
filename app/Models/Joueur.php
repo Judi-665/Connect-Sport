@@ -154,4 +154,33 @@ class Joueur extends Model
     {
         return $this->abonnements()->actif()->latest('fin_at')->first();
     }
+
+    public function candidatures()
+{
+    return $this->hasMany(Candidature::class);
+}
+
+public function carrieres()
+{
+    return $this->hasMany(Carriere::class);
+}
+
+public function carriereActuelle()
+{
+    return $this->hasOne(Carriere::class)->whereNull('date_fin')->latestOfMany();
+}
+
+public function equipes()
+{
+    return $this->belongsToMany(Equipe::class, 'equipe_joueur')
+                ->withPivot('date_debut', 'date_fin', 'actif')
+                ->withTimestamps();
+}
+
+public function opportunites()
+{
+    return $this->belongsToMany(Opportunite::class, 'opportunite_joueur')
+                ->withPivot('candidature_at', 'statut')
+                ->withTimestamps();
+}
 }

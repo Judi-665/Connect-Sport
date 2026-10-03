@@ -27,6 +27,27 @@
             min-height: 100vh;
         }
 
+        .cs-card {
+            background: var(--bs-body-bg);
+            color: var(--bs-body-color);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(13,46,92,.08);
+            transition: background .25s, border-color .25s, color .25s;
+        }
+
+        .directory-muted { color: var(--bs-secondary-color); }
+        .message-list, .message-surface { background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: 12px; box-shadow: 0 2px 12px rgba(13,46,92,.08); overflow: hidden; }
+        .message-item { display: block; padding: 16px 18px; color: var(--bs-body-color); text-decoration: none; border-bottom: 1px solid var(--bs-border-color); }
+        .message-item:last-child { border-bottom: 0; }
+        .message-item:hover { background: var(--bs-tertiary-bg); color: var(--bs-body-color); }
+        .message-muted { color: var(--bs-secondary-color); }
+        .message-bubble-incoming { background: var(--bs-tertiary-bg); color: var(--bs-body-color); }
+
+        [data-bs-theme="dark"] .cs-card {
+            box-shadow: 0 2px 16px rgba(0,0,0,.35);
+        }
+
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--bs-secondary-bg); }
@@ -96,7 +117,7 @@
     @endif
 
     @auth
-    @if(in_array(auth()->user()->role, ['club', 'agent']))
+    @if(in_array(auth()->user()->role, ['club', 'agent', 'joueur', 'parent']))
         <div id="sidebar-overlay"
              class="d-none position-fixed top-0 start-0 w-100 h-100"
              style="background:rgba(0,0,0,.5);z-index:99;"
@@ -119,6 +140,11 @@
             </main>
         @elseif(auth()->user()->role === 'joueur')
             @include('joueur.partials._sidebar')
+            <main class="main-with-sidebar">
+                @yield('content')
+            </main>
+        @elseif(auth()->user()->role === 'parent')
+            @include('parent.partials._sidebar')
             <main class="main-with-sidebar">
                 @yield('content')
             </main>
@@ -237,15 +263,6 @@
                 menuImg.src = src;
             } else if (menuFallback) {
                 menuFallback.outerHTML = `<img id="navbar-menu-img" src="${src}" class="rounded-circle object-fit-cover flex-shrink-0" style="width:40px;height:40px;" alt="Avatar">`;
-            }
-
-            //   Sidebar - Logo du club
-            const sidebarImg = document.getElementById('sidebar-brand-logo');
-            const sidebarFallback = document.getElementById('sidebar-brand-fallback');
-            if (sidebarImg) {
-                sidebarImg.src = src;
-            } else if (sidebarFallback) {
-                sidebarFallback.outerHTML = `<img id="sidebar-brand-logo" src="${src}" class="rounded-2 flex-shrink-0 object-fit-cover" style="width:36px;height:36px;">`;
             }
 
             //   Sidebar - Avatar utilisateur (si présent)

@@ -20,6 +20,7 @@ class User extends Authenticatable
         'role',
         'avatar',
         'telephone',
+        'actif',
     ];
 
     protected $hidden = [
@@ -30,7 +31,9 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
+        'actif'             => 'boolean',
     ];
+
 
     // ═══ Helpers rôles ═══
 
@@ -63,10 +66,15 @@ class User extends Authenticatable
         return $this->hasOne(Supporter::class);
     }
 
-    public function parent()
+    public function mediaReactions()
     {
-        return $this->hasOne(ParentJoueur::class);
+        return $this->hasMany(MediaReaction::class);
     }
+    
+    public function parentsJoueurs()
+{
+    return $this->hasMany(ParentJoueur::class);
+}
 
     public function messagesEnvoyes()
     {

@@ -16,6 +16,7 @@ class Abonnement extends Model
     protected $fillable = [
         'club_id' ,
         'joueur_id',
+        'agent_id',
         'subscription_plan_id',
         'plan',
         'montant',
@@ -111,9 +112,14 @@ class Abonnement extends Model
 }
 
 // Le "propriétaire" de l'abonnement, quel qu'il soit
-public function abonnable(): Club|Joueur|null
+public function abonnable(): Club|Joueur|Agent|null
 {
-    return $this->club_id ? $this->club : $this->joueur;
+    return match(true) {
+        (bool) $this->club_id   => $this->club,
+        (bool) $this->joueur_id => $this->joueur,
+        (bool) $this->agent_id  => $this->agent,
+        default => null,
+    };
 }
 
     public function plan()
@@ -125,4 +131,10 @@ public function abonnable(): Club|Joueur|null
 {
     return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
 }
+
+public function agent()
+{
+    return $this->belongsTo(Agent::class);
+}
+
 }

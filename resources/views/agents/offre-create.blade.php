@@ -8,10 +8,17 @@
 @endsection
 
 @section('content')
-@php
-    $clubsSources = $joueurs->pluck('club')->filter()->unique('id')->sortBy('nom');
-@endphp
 <div class="cs-card"><div class="cs-card-header"><div class="cs-card-title"><i class="bi bi-send"></i>Nouvelle offre de transfert</div></div><div class="cs-card-body">
+    @if($joueurs->isEmpty())
+        <div class="alert alert-warning d-flex align-items-start gap-2 mb-0">
+            <i class="bi bi-info-circle mt-1"></i>
+            <div>
+                <strong>Aucun joueur représenté actif</strong>
+                <p class="mb-2">Pour choisir un club source, vous devez d’abord signer un mandat actif avec un joueur rattaché à ce club.</p>
+                <a href="{{ route('agent.joueurs') }}" class="btn-cs btn-cs-primary btn-sm">Voir mes joueurs</a>
+            </div>
+        </div>
+    @else
     <form method="POST" action="{{ route('agent.transferts.store') }}" class="row g-3" id="offre-form">
         @csrf
         <div class="col-md-6"><label for="club_source_id" class="form-label">Club source</label><select id="club_source_id" name="club_source_id" class="form-select" required><option value="">Choisir un club</option>@foreach($clubsSources as $club)<option value="{{ $club->id }}" @selected(old('club_source_id') == $club->id)>{{ $club->nom }} @if($club->ville)({{ $club->ville }})@endif</option>@endforeach</select><div class="form-text">Les joueurs représentés de ce club seront affichés ensuite.</div></div>
@@ -24,8 +31,9 @@
         <div class="col-md-6"><label class="form-label">Fin du prêt</label><input type="date" name="date_fin_pret" class="form-control"></div>
         <div class="col-12"><div class="form-check"><input type="checkbox" name="montant_confidentiel" value="1" class="form-check-input" id="confidentiel"><label class="form-check-label" for="confidentiel">Garder le montant confidentiel</label></div></div>
         <div class="col-12"><label class="form-label">Message aux clubs</label><textarea name="agent_note" rows="4" maxlength="2000" class="form-control" placeholder="Conditions, contexte et proposition de l'agent"></textarea></div>
-        <div class="col-12 d-flex justify-content-end gap-2"><a href="{{ route('agent.transferts') }}" class="btn-cs btn-cs-ghost">Annuler</a><button class="btn-cs btn-cs-primary"><i class="bi bi-send"></i>Soumettre l'offre</button></div>
+        <div class="col-12 d-flex justify-content-end gap-2"><a href="{{ route('agent.transferts.index') }}" class="btn-cs btn-cs-ghost">Annuler</a><button class="btn-cs btn-cs-primary"><i class="bi bi-send"></i>Soumettre l'offre</button></div>
     </form>
+    @endif
 </div></div>
 @endsection
 

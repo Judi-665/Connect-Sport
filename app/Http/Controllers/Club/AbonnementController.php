@@ -21,7 +21,10 @@ class AbonnementController extends Controller
         $club       = Auth::user()->club;
         $abonnement = $club->subscriptionActive();
         $planActif  = $abonnement?->subscriptionPlan; // ← relation renommée
-        $plans      = SubscriptionPlan::where('actif', true)->orderBy('prix')->get();
+        $plans      = SubscriptionPlan::where('type_acteur', 'club')
+                ->where('actif', true)
+                ->orderBy('prix')
+                ->get();
         $historique = Abonnement::where('club_id', $club->id)
                         ->with('subscriptionPlan')
                         ->latest()
@@ -36,7 +39,10 @@ class AbonnementController extends Controller
     public function choisir()
     {
         $club      = Auth::user()->club;
-        $plans     = SubscriptionPlan::where('actif', true)->orderBy('prix')->get();
+        $plans     = SubscriptionPlan::where('type_acteur', 'club')
+                   ->where('actif', true)
+                   ->orderBy('prix')
+                   ->get();
         $planActif = $club->subscriptionActive()?->subscriptionPlan; // ← relation renommée
 
         return view('club.abonnement.choisir', compact('plans', 'planActif', 'club'));
@@ -51,7 +57,8 @@ class AbonnementController extends Controller
 
         $club = Auth::user()->club;
         $user = Auth::user();
-        $plan = SubscriptionPlan::findOrFail($request->plan_id);
+        $plan = SubscriptionPlan::where('type_acteur', 'club')
+                       ->findOrFail($request->plan_id);
 
         // Plan gratuit → activation directe
         if ($plan->prix == 0) {
@@ -84,7 +91,7 @@ class AbonnementController extends Controller
                 'amount'       => (int) $plan->prix,
                 'currency'     => 'XOF',
                 'callback_url' => route('club.abonnement.callback'),
-                'return_url'   => route('club.abonnement.succes') . '?ab_id=' . $abonnement->id,
+                'return_url'   => route('club.abonnement.index'),
                 'customer'     => [
                     'firstname' => $user->prenom ?? $user->name,
                     'lastname'  => $user->name,
@@ -132,6 +139,11 @@ class AbonnementController extends Controller
                 $this->confirmerAbonnement($abonnement);
             } elseif (in_array($result->statut, ['declined', 'cancelled'])) {
                 $abonnement->update(['statut' => 'annule']);
+            }
+
+            // Le navigateur doit revenir à la page abonnement ; le webhook reste en JSON.
+            if ($request->isMethod('GET') || Auth::check()) {
+                return redirect()->route('club.abonnement.index');
             }
 
             return response()->json(['message' => 'OK']);

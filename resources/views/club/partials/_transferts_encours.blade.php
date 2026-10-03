@@ -78,6 +78,12 @@
                 <span class="cs-tag cs-tag--{{ $color }}">{{ $label }}</span>
             </div>
 
+            @if($transfert->initiee_par === 'joueur')
+            <span class="cs-tag cs-tag--primary" title="Demande initiée par le joueur">
+                <i class="bi bi-person-fill" style="font-size:10px;"></i> Demande joueur
+            </span>
+            @endif
+
             {{-- Action --}}
             <a href="{{ route('club.transferts.show', $transfert) }}" class="cs-transfert-row__link" aria-label="Voir le transfert">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">

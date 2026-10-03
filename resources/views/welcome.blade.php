@@ -4,10 +4,17 @@
     Bootstrap 5 natif — variables CSS utilisées systématiquement.
     Section rôles remplacée par @include('partials._ecosysteme').
 --}}
-@extends('layouts.app')
+@extends(auth()->check() && auth()->user()->role === 'agent' ? 'layouts.agent' : 'layouts.app')
 
 @section('title', 'Accueil')
 @section('description', 'Connect Sport — La plateforme multi-sport qui connecte clubs, joueurs, agents et supporters.')
+
+@if(auth()->check() && auth()->user()->role === 'agent')
+    @section('page-title', 'Accueil')
+    @section('sidebar-nav')
+        @include('agents.partials.nav')
+    @endsection
+@endif
 
 @section('content')
 
@@ -323,7 +330,9 @@
             <div class="col-lg-6">
                 @include('partials._clubs_recents', ['clubs' => $clubs ?? collect()])
                 <div class="my-4"></div>
-                @include('partials._opportunites',  ['opportunites' => $opportunites ?? collect()])
+                @if(!auth()->user()?->isSupporter())
+                    @include('partials._opportunites',  ['opportunites' => $opportunites ?? collect()])
+                @endif
             </div>
 
             {{-- Colonne droite --}}

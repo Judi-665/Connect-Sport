@@ -6,9 +6,10 @@ namespace App\Http\Controllers\Club;
 use App\Http\Controllers\Controller;
 use App\Models\Club;
 use App\Models\Joueur;
-use App\Models\Sport;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Sport;
+use App\Models\Transfert;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -23,7 +24,11 @@ class ClubController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Club::with('sport');
+        $query = Club::with('sport')
+            ->withCount([
+                'joueurs' => fn($q) => $q->where('actif', true),
+                'supporters',
+            ]);
 
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
@@ -45,9 +50,58 @@ class ClubController extends Controller
     public function show(string $slug)
     {
         $club = Club::where('slug', $slug)
-                    ->with(['sport', 'opportunites' => fn($q) => $q->latest()->take(5)])
+                    ->withCount(['joueurs' => fn($q) => $q->where('actif', true)])
+                    ->with([
+                        'sport',
+                        'sponsors' => fn($q) => $q->actif()
+                            ->where(fn($q) => $q->whereNull('fin_partenariat')
+                                ->orWhere('fin_partenariat', '>=', today()))
+                            ->latest(),
+                        'opportunites' => fn($q) => $q->latest()->take(5),
+                    ])
                     ->firstOrFail();
         return view('clubs.show', compact('club'));
+    }
+
+    /**
+     * Liste publique des joueurs appartenant à un club.
+     */
+    public function publicJoueurs(Club $club)
+    {
+        $joueurs = $club->joueurs()
+                        ->where('actif', true)
+                        ->with(['user', 'equipe'])
+                        ->latest()
+                        ->paginate(12);
+
+        return view('clubs.joueurs', compact('club', 'joueurs'));
+    }
+
+    /**
+     * Galerie publique des photos et vidéos du club.
+     */
+    public function publicMedias(Club $club)
+    {
+        $publicMedia = $club->medias()
+                       ->publics()
+                       ->where('payant', false)
+                       ->withCount([
+                           'reactions as likes_count' => fn($query) => $query->where('type', 'like'),
+                           'reactions as loves_count' => fn($query) => $query->where('type', 'love'),
+                       ])
+                       ->with(['reactions' => fn($query) => $query->where('user_id', Auth::id())]);
+
+        $photos = (clone $publicMedia)
+                       ->photos()
+                       ->latest()
+                       ->paginate(12, ['*'], 'photos');
+
+        $videos = (clone $publicMedia)
+                       ->videos()
+                       ->latest()
+                       ->paginate(8, ['*'], 'videos');
+
+        return view('clubs.medias', compact('club', 'photos', 'videos'));
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -67,10 +121,18 @@ class ClubController extends Controller
 }
 
         $stats = [
-            'joueurs'    => $club->joueurs()->count(),
-            'equipes'    => $club->equipes()->count(),
-            'licences'   => $club->licences()->active()->count(),
-            'evenements' => $club->evenements()->aVenir()->count(),
+            'joueurs_total'       => $club->joueurs()->count(),
+            'joueurs_actifs'      => $club->joueurs()->actif()->count(),
+            'equipes_total'       => $club->equipes()->count(),
+            'categories'          => $club->equipes()->whereNotNull('categorie')->distinct()->count('categorie'),
+            'licences_actives'    => $club->licences()->active()
+                ->where(fn($q) => $q->whereNull('date_expiration')->orWhereDate('date_expiration', '>=', today()))
+                ->count(),
+            'licences_expirent'   => $club->licences()->active()
+                ->whereBetween('date_expiration', [today(), today()->addDays(30)])
+                ->count(),
+            'evenements_a_venir'  => $club->evenements()->aVenir()->count(),
+            'prochain_evenement'  => $club->evenements()->aVenir()->value('debut_at'),
         ];
 
         $evenementsProchains = $club->evenements()
@@ -79,20 +141,34 @@ class ClubController extends Controller
                     ->take(5)
                     ->get();
 
-        $transfertsEnCours = $club->transferts()
-                  ->whereIn('statut', ['en_attente', 'en_cours'])
+                $transfertsEnCours = Transfert::where(function ($query) use ($club) {
+                                        $query->where('club_source_id', $club->id)
+                                                    ->orWhere('club_destinataire_id', $club->id);
+                                })
+                                    ->whereIn('statut', ['en_attente', 'en_negociation'])
                   ->with(['joueur.user', 'clubSource', 'clubDestinataire'])
                   ->latest()
                   ->take(5)
                   ->get();
 
         $joueurs = $club->joueurs()
-                    ->with('user')
+                                        ->with(['user', 'equipe'])
                     ->latest()
                     ->take(6)
                     ->get();
 
-        return view('club.dashboard', compact('club', 'stats', 'evenementsProchains', 'transfertsEnCours', 'joueurs'));
+                $sponsorsActifs = $club->sponsors()
+                        ->actif()
+                        ->where(fn($q) => $q->whereNull('fin_partenariat')->orWhereDate('fin_partenariat', '>=', today()))
+                        ->latest()
+                        ->take(5)
+                        ->get();
+
+                $abonnementActif = $club->subscriptionActive();
+
+                return view('club.dashboard', compact(
+                        'club', 'stats', 'evenementsProchains', 'transfertsEnCours', 'joueurs', 'sponsorsActifs', 'abonnementActif'
+                ));
     }
 
     /**
@@ -348,6 +424,14 @@ class ClubController extends Controller
 {
     $club = Auth::user()->club;
     $user = Auth::user();
-    return view('club.parametres.index', compact('club', 'user'));
+    $abonnementActif = $club?->subscriptionActive();
+    $planActif = $abonnementActif?->subscriptionPlan;
+
+    return view('club.parametres.index', compact(
+        'club',
+        'user',
+        'abonnementActif',
+        'planActif'
+    ));
 }
 }

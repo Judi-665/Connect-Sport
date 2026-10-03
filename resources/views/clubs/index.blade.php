@@ -1,20 +1,20 @@
-{{--
-    resources/views/clubs/index.blade.php
-    Annuaire des clubs — Bootstrap 5, dark/light natif.
-    Données exemples qui disparaissent une à une au fur et à mesure
-    que de vrais clubs s'inscrivent ($clubs->count() détermine combien
-    d'exemples restent visibles).
-    Aucun emoji, aucun sticker. Dev senior.
---}}
-@extends('layouts.app')
+
+@extends(auth()->check() && auth()->user()->role === 'agent' ? 'layouts.agent' : 'layouts.app')
 
 @section('title', 'Clubs sportifs — Connect Sport')
 @section('description', 'Découvrez tous les clubs inscrits sur Connect Sport à travers l\'Afrique francophone.')
 
+@if(auth()->check() && auth()->user()->role === 'agent')
+    @section('page-title', 'Clubs sportifs')
+    @section('sidebar-nav')
+        @include('agents.partials.nav')
+    @endsection
+@endif
+
 @section('content')
 
 @php
-// ── Données exemples (disparaissent une à une) ────────────────────────────
+
 $exemples = [
     [
         'slug'        => null,
@@ -147,9 +147,9 @@ $exemplesVisibles = array_slice($exemples, $realCount);
         <div class="col-md-4 text-md-end">
             @auth
                 @if(auth()->user()->role === 'club')
-                <a href="{{ route('clubs.create') }}"
+                <a href="{{ route('club.profil.edit') }}"
                    class="btn btn-warning fw-bold rounded-3 px-4">
-                    Ajouter mon club
+                    Gérer mon club
                 </a>
                 @endif
             @else
@@ -332,7 +332,7 @@ $exemplesVisibles = array_slice($exemples, $realCount);
                                     {{ $club->joueurs_count ?? 0 }} joueurs
                                 </span>
                                 <span class="text-body-secondary" style="font-size:.72rem;">
-                                    {{ $club->equipes_count ?? 1 }} équipe(s)
+                                    <i class="bi bi-heart text-danger"></i> {{ $club->supporters_count ?? 0 }} supporter(s)
                                 </span>
                             </div>
                             <span class="fw-semibold" style="font-size:.72rem;color:var(--bs-primary);">

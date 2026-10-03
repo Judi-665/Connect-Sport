@@ -61,7 +61,7 @@ class Licence extends Model
 
     public function urlPdf(): string
     {
-        return asset('storage/' . $this->fichier_pdf);
+        return route('club.licences.download', $this);
     }
 
     // ═══ Relations ═══

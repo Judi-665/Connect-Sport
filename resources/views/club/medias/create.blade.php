@@ -63,10 +63,10 @@
                                 Fichier <span class="text-danger">*</span>
                             </label>
                             <input type="file" id="fichier" name="fichier"
-                                   class="form-control rounded-3" required>
+                                   class="form-control rounded-3" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" required>
                             <div class="form-text" id="fichier-hint">
                                 Photos : JPG, PNG, WEBP — max 10 Mo.
-                                Vidéos : MP4, MOV — max 50 Mo.
+                                Vidéos : MP4, WEBM, MOV — max 100 Mo.
                             </div>
                             <div class="invalid-feedback">Veuillez sélectionner un fichier.</div>
 
@@ -227,7 +227,29 @@
     });
 
     // ── Prévisualisation fichier ──
-    document.getElementById('fichier').addEventListener('change', function () {
+    const inputFichier = document.getElementById('fichier');
+    const hintFichier = document.getElementById('fichier-hint');
+
+    function actualiserTypesAcceptes() {
+        const type = document.querySelector('input[name="type"]:checked').value;
+        if (type === 'photo') {
+            inputFichier.accept = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
+            hintFichier.textContent = 'Photos : JPG, PNG, WEBP — max 10 Mo. Vidéos : MP4, WEBM, MOV — max 100 Mo.';
+        } else {
+            inputFichier.accept = 'video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov';
+            hintFichier.textContent = 'Vidéos : MP4, WEBM, MOV — max 100 Mo. MP4 (H.264) est recommandé pour une lecture compatible avec la plupart des appareils.';
+        }
+    }
+
+    document.querySelectorAll('input[name="type"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            inputFichier.value = '';
+            document.getElementById('preview-wrap').classList.add('d-none');
+            actualiserTypesAcceptes();
+        });
+    });
+
+    inputFichier.addEventListener('change', function () {
         const file = this.files[0];
         const wrap = document.getElementById('preview-wrap');
         const img  = document.getElementById('preview-img');
@@ -293,7 +315,7 @@
         }
 
         const maxMo = document.querySelector('input[name="type"]:checked').value === 'photo'
-            ? 10 : 50;
+            ? 10 : 100;
         if (fichier && fichier.size > maxMo * 1024 * 1024) {
             erreurs.innerHTML = `Le fichier ne doit pas dépasser ${maxMo} Mo.`;
             erreurs.classList.remove('d-none');

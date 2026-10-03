@@ -137,8 +137,8 @@
                                 <a href="{{ route('joueur.carriere.index') }}" class="btn btn-outline-warning rounded-pill px-4">
                                     <i class="bi bi-graph-up me-1"></i> Carrière
                                 </a>
-                                <a href="{{ route('joueur.difficultes.index') }}" class="btn btn-outline-warning rounded-pill px-4">
-                                    <i class="bi bi-chat-dots me-1"></i> Difficultés & Souhaits
+                                <a href="{{ route('joueur.agenda.index') }}" class="btn btn-outline-warning rounded-pill px-4">
+                                    <i class="bi bi-chat-dots me-1"></i> Agenda
                                 </a>
                                 <a href="{{ route('joueur.transferts.index') }}" class="btn btn-outline-warning rounded-pill px-4">
                                     <i class="bi bi-arrow-left-right me-1"></i> Transferts

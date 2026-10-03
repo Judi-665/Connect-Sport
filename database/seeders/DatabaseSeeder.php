@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
         
         $this->call(SubscriptionPlanSeeder::class);
+        $this->call(AgentSubscriptionPlansSeeder::class);
 
         User::factory()->create([
             'name' => 'Test User',

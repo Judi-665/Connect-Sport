@@ -8,12 +8,51 @@ use App\Models\Club;
 use App\Models\Joueur;
 use App\Models\User;
 use App\Models\Notification;
+use App\Models\ParentJoueur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class JoueurController extends Controller
 {
+    public function demandesParents()
+    {
+        $joueur = Auth::user()->joueur;
+        abort_unless($joueur, 403);
+
+        $demandes = ParentJoueur::where('joueur_id', $joueur->id)
+            ->where('actif', false)
+            ->with('user')
+            ->latest()
+            ->get();
+
+        return view('joueur.demandes-parents', compact('demandes', 'joueur'));
+    }
+
+    public function accepterDemandeParent(ParentJoueur $parent)
+    {
+        $joueur = Auth::user()->joueur;
+        abort_unless($joueur && $parent->joueur_id === $joueur->id && !$parent->actif, 404);
+
+        $parent->update([
+            'actif' => true,
+            'acces_stats' => true,
+            'acces_agenda' => true,
+        ]);
+
+        return back()->with('success', 'Lien parent-joueur confirmé.');
+    }
+
+    public function refuserDemandeParent(ParentJoueur $parent)
+    {
+        $joueur = Auth::user()->joueur;
+        abort_unless($joueur && $parent->joueur_id === $joueur->id && !$parent->actif, 404);
+
+        $parent->delete();
+
+        return back()->with('success', 'Demande refusée.');
+    }
+
     // ═══ Dashboard joueur ═══
     public function dashboard()
     {
@@ -74,7 +113,12 @@ public function locked(Request $request)
     // ═══ Afficher profil public ═══
     public function index(Request $request)
 {
-    $query = Joueur::with('user');
+        $query = Joueur::with([
+    'user',
+    'statistiques' => fn($query) => $query
+        ->where('valide', true)
+        ->latest('saison'),
+]);
 
     // Filtre recherche par nom/prénom
     if ($request->filled('search')) {
@@ -94,6 +138,10 @@ public function locked(Request $request)
         $query->where('nationalite', 'like', '%'.$request->pays.'%');
     }
 
+    if ($request->filled('disponible')) {
+        $query->where('sans_club', $request->boolean('disponible') ? 1 : 0);
+    }
+
     // Par défaut, on n'affiche que les joueurs "visibles recruteur" ou tous ?
     // On laisse le scope visibleRecruteur si tu veux.
     $joueurs = $query->paginate(12);
@@ -104,17 +152,21 @@ public function locked(Request $request)
 // ═══ Détail public d’un joueur (déjà existant mais on s’assure qu’il est bien public) ═══
 public function show(Joueur $joueur)
 {
-    $joueur->load('user', 'club', 'equipe', 'statistiques');
+    $joueur->load([
+        'user',
+        'club',
+        'equipe',
+        'statistiques' => fn($query) => $query
+            ->where('valide', true)
+            ->orderByDesc('saison'),
+    ]);
     return view('joueurs.show', compact('joueur'));
 }
 
     // ═══ Formulaire création profil ═══
     public function create()
     {
-        $clubs   = Club::actif()->with('sport')->get();
-        $equipes = collect();
-
-        return view('joueur.create', compact('clubs', 'equipes'));
+        return view('joueur.create');
     }
 
     // ═══ Enregistrer profil ═══
@@ -128,8 +180,6 @@ public function show(Joueur $joueur)
             'telephone'      => 'nullable|string|max:20',
             'ville'          => 'nullable|string|max:100',
             'bio'            => 'nullable|string|max:1000',
-            'club_id'        => 'nullable|exists:clubs,id',
-            'equipe_id'      => 'nullable|exists:equipes,id',
             'avatar'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
@@ -146,11 +196,14 @@ public function show(Joueur $joueur)
             $user->avatar = $avatarPath;
             $user->save();
         }
+        if (Auth::user()->joueur) {
+    return redirect()->route('joueur.profil')->with('info', 'Vous avez déjà un profil joueur.');
+}
 
         Joueur::create([
             'user_id'        => Auth::id(),
-            'club_id'        => $request->club_id,
-            'equipe_id'      => $request->equipe_id,
+            'club_id'        => null,
+            'equipe_id'      => null,
             'poste'          => $request->poste,
             'categorie'      => $request->categorie,
             'date_naissance' => $request->date_naissance,
@@ -158,7 +211,7 @@ public function show(Joueur $joueur)
             'telephone'      => $request->telephone,
             'ville'          => $request->ville,
             'bio'            => $request->bio,
-            'sans_club'      => $request->club_id ? 0 : 1,
+            'sans_club'      => 1,
         ]);
 
         return redirect()->route('joueur.dashboard')
@@ -172,12 +225,7 @@ public function show(Joueur $joueur)
         $user   = Auth::user();
         $joueur = $user->joueur;
 
-        $clubs   = Club::actif()->with('sport')->get();
-        $equipes = $joueur->club
-            ? $joueur->club->equipes()->get()
-            : collect();
-
-        return view('joueur.edit', compact('joueur', 'clubs', 'equipes'));
+        return view('joueur.edit', compact('joueur'));
     }
 
     // ═══ Mettre à jour profil ═══
@@ -195,8 +243,6 @@ public function show(Joueur $joueur)
             'telephone'         => 'nullable|string|max:20',
             'ville'             => 'nullable|string|max:100',
             'bio'               => 'nullable|string|max:1000',
-            'club_id'           => 'nullable|exists:clubs,id',
-            'equipe_id'         => 'nullable|exists:equipes,id',
             'visible_recruteur' => 'boolean',
             'avatar'            => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
@@ -214,8 +260,6 @@ public function show(Joueur $joueur)
         }
 
         $joueur->update([
-            'club_id'           => $request->club_id,
-            'equipe_id'         => $request->equipe_id,
             'poste'             => $request->poste,
             'categorie'         => $request->categorie,
             'date_naissance'    => $request->date_naissance,
@@ -223,7 +267,6 @@ public function show(Joueur $joueur)
             'telephone'         => $request->telephone,
             'ville'             => $request->ville,
             'bio'               => $request->bio,
-            'sans_club'         => $request->club_id ? 0 : 1,
             'visible_recruteur' => $request->boolean('visible_recruteur'),
         ]);
 
@@ -233,14 +276,12 @@ public function show(Joueur $joueur)
 
     // ═══ Liste joueurs sans club (recrutement) ═══
     public function sansClub()
-{
-    $joueurs = Joueur::sansClub()
-                    ->visibleRecruteur()
-                    ->with('user')
-                    ->paginate(20);
+    {
+        $joueurs = Joueur::sansClub()
+                        ->visibleRecruteur()
+                        ->with('user')
+                        ->paginate(20);
 
-    return view('joueurs.index', compact('joueurs'));
-}
-
-
+        return view('joueurs.index', compact('joueurs'));
+    }
 }

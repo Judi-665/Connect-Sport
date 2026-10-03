@@ -66,22 +66,22 @@
     </div>
 
     {{-- Actions --}}
-    <div class="d-flex gap-1 flex-shrink-0">
-        <a href="{{ route('club.agenda.show', $evenement) }}"
-           class="btn btn-sm btn-outline-secondary rounded-2" title="Voir">
-            <i class="bi bi-eye"></i>
-        </a>
-        <a href="{{ route('club.agenda.edit', $evenement) }}"
-           class="btn btn-sm btn-outline-warning rounded-2" title="Modifier">
-            <i class="bi bi-pencil"></i>
-        </a>
-        <button type="button"
-                class="btn btn-sm btn-outline-danger rounded-2"
-                data-action="supprimer"
-                data-id="{{ $evenement->id }}"
-                data-titre="{{ $evenement->titre }}"
-                title="Supprimer">
-            <i class="bi bi-trash"></i>
-        </button>
-    </div>
+        <div class="d-flex gap-1 flex-shrink-0">
+            <a href="{{ route('club.agenda.show', $evenement) }}"
+            class="btn btn-sm btn-outline-secondary rounded-2" title="Voir">
+                <i class="bi bi-eye"></i>
+            </a>
+            <a href="{{ route('club.agenda.edit', $evenement) }}"
+            class="btn btn-sm btn-outline-warning rounded-2" title="Modifier">
+                <i class="bi bi-pencil"></i>
+            </a>
+            <button type="button"
+                    class="btn btn-sm btn-outline-danger rounded-2"
+                    data-action="supprimer"
+                    data-id="{{ $evenement->id }}"
+                    data-titre="{{ $evenement->titre }}"
+                    title="Supprimer">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
 </div>

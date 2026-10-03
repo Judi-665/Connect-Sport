@@ -6,145 +6,306 @@ namespace App\Http\Controllers\Supporter;
 use App\Http\Controllers\Controller;
 use App\Models\Supporter;
 use App\Models\Club;
+use App\Models\Sport;
+use App\Models\EvenementAgenda;
+use App\Models\Media;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class SupporterController extends Controller
 {
-    // ═══ Dashboard supporter ═══
-    public function dashboard()
+    /**
+     * Récupère ou crée automatiquement le profil supporter pour l'utilisateur connecté.
+     */
+    private function getSupporter(): Supporter
     {
-        $supporter = Auth::user()->supporter;
+        $user = $this->authenticatedUser();
+        $supporter = $user->supporter;
 
         if (!$supporter) {
-            return redirect()->route('supporter.create')
-                             ->with('info', 'Veuillez créer votre profil supporter');
+            $supporter = Supporter::create([
+                'user_id' => $user->id,
+                'pays'    => 'Bénin',
+                'actif'   => 1,
+            ]);
         }
 
-        $clubsFollow = $supporter->clubs()->paginate(10);
+        return $supporter;
+    }
+
+    /**
+     * Dashboard principal du supporter avec son fil d'actualité enrichi.
+     */
+    public function dashboard(Request $request)
+    {
+        $supporter = $this->getSupporter();
+        $followedClubs = $supporter->clubs()->with('sport')->withCount('supporters')->get();
+        $clubIds = $followedClubs->pluck('id')->toArray();
+
+        // Filtre optionnel par club spécifique dans le fil
+        $selectedClubId = $request->get('club_id');
+        $activeClubIds = ($selectedClubId && in_array($selectedClubId, $clubIds))
+            ? [(int) $selectedClubId]
+            : $clubIds;
+
+        // Prochains matchs (Agenda)
+        $prochainsMatchs = empty($clubIds)
+            ? collect()
+            : EvenementAgenda::whereIn('club_id', $activeClubIds)
+                ->where('debut_at', '>=', now())
+                ->whereIn('visibilite', ['public', 'club'])
+                ->with('club')
+                ->orderBy('debut_at', 'asc')
+                ->take(10)
+                ->get();
+
+        // Derniers résultats (Matchs terminés avec scores)
+        $derniersResultats = empty($clubIds)
+            ? collect()
+            : EvenementAgenda::whereIn('club_id', $activeClubIds)
+                ->where('debut_at', '<', now())
+                ->whereNotNull('score_nous')
+                ->whereNotNull('score_eux')
+                ->with('club')
+                ->orderBy('debut_at', 'desc')
+                ->take(10)
+                ->get();
+
+        // Photos et médias publiés
+        $medias = empty($clubIds)
+            ? collect()
+            : Media::whereIn('club_id', $activeClubIds)
+                ->whereIn('visibilite', ['public', 'club'])
+                ->where('payant', false)
+                ->with(['club', 'evenement', 'reactions' => fn($query) => $query->where('user_id', Auth::id())])
+                ->withCount([
+                    'reactions as likes_count' => fn($query) => $query->where('type', 'like'),
+                    'reactions as loves_count' => fn($query) => $query->where('type', 'love'),
+                ])
+                ->latest()
+                ->take(12)
+                ->get();
+
+        // Suggestions de clubs à découvrir
+        $clubsSuggeres = Club::whereNotIn('id', $clubIds)
+            ->with('sport')
+            ->withCount('supporters')
+            ->inRandomOrder()
+            ->take(6)
+            ->get();
+
+        // Statistiques
         $stats = [
-            'clubs_follow' => $supporter->clubs()->count(),
-            'premium'      => $supporter->clubsPremium()->count(),
+            'clubs_suivis'          => count($clubIds),
+            'prochains_matchs'      => $prochainsMatchs->count(),
+            'derniers_resultats'    => $derniersResultats->count(),
+            'medias_recents'        => $medias->count(),
+            'notifications_actives' => $followedClubs->filter(fn($c) => (bool) $c->pivot->notifications_actives)->count(),
         ];
 
-        return view('supporter.dashboard', compact('supporter', 'clubsFollow', 'stats'));
+        return view('supporter.dashboard', compact(
+            'supporter',
+            'followedClubs',
+            'clubIds',
+            'selectedClubId',
+            'prochainsMatchs',
+            'derniersResultats',
+            'medias',
+            'clubsSuggeres',
+            'stats'
+        ));
     }
 
-    // ═══ Créer profil ═══
-    public function create()
+    /**
+     * Page dédiée "Mes clubs suivis".
+     */
+    public function mesClubs(Request $request)
     {
-        return view('supporter.create');
-    }
+        $supporter = $this->getSupporter();
 
-    // ═══ Enregistrer profil ═══
-    public function store(Request $request)
-    {
-        $user = Auth::user();
+        $query = $supporter->clubs()->with('sport')->withCount('supporters');
 
-        $validated = $request->validate([
-            'ville' => 'required|string|max:100',
-            'pays'  => 'required|string|max:100',
-            'bio'   => 'nullable|string|max:500',
-        ]);
-
-        Supporter::create(array_merge($validated, [
-            'user_id' => $user->id,
-            'actif'   => true,
-        ]));
-
-        return redirect()->route('supporter.dashboard')
-                        ->with('success', 'Profil créé');
-    }
-
-    // ═══ Profil supporter ═══
-    public function profil()
-    {
-        $supporter = Auth::user()->supporter;
-        return view('supporter.profil', compact('supporter'));
-    }
-
-    // ═══ Éditer profil ═══
-    public function edit()
-    {
-        $supporter = Auth::user()->supporter;
-        return view('supporter.edit', compact('supporter'));
-    }
-
-    // ═══ Mettre à jour ═══
-    public function update(Request $request)
-    {
-        $supporter = Auth::user()->supporter;
-
-        $validated = $request->validate([
-            'ville' => 'required|string|max:100',
-            'pays'  => 'required|string|max:100',
-            'bio'   => 'nullable|string|max:500',
-        ]);
-
-        $supporter->update($validated);
-
-        return redirect()->route('supporter.profil')
-                        ->with('success', 'Profil mis à jour');
-    }
-
-    // ═══ Suivre un club ═══
-    public function followClub(Request $request)
-    {
-        $supporter = Auth::user()->supporter;
-
-        $validated = $request->validate([
-            'club_id'               => 'required|exists:clubs,id',
-            'type_abonnement'       => 'required|in:gratuit,premium',
-            'notifications_actives' => 'sometimes|boolean',
-        ]);
-
-        $existant = $supporter->clubs()
-                             ->where('club_id', $validated['club_id'])
-                             ->exists();
-
-        if ($existant) {
-            return back()->with('warning', 'Vous suivez déjà ce club');
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nom', 'like', "%{$search}%")
+                  ->orWhere('ville', 'like', "%{$search}%");
+            });
         }
 
-        $supporter->clubs()->attach($validated['club_id'], [
-            'type_abonnement'       => $validated['type_abonnement'],
-            'notifications_actives' => $validated['notifications_actives'] ?? true,
-            'abonnement_expire_at'  => now()->addYear(),
-        ]);
+        if ($request->filled('sport_id')) {
+            $query->where('sport_id', $request->sport_id);
+        }
 
-        return back()->with('success', 'Club suivi');
+        $clubs = $query->paginate(12)->withQueryString();
+        $sports = Sport::orderBy('nom')->get();
+
+        return view('supporter.clubs', compact('supporter', 'clubs', 'sports'));
     }
 
-    // ═══ Clubs suivis ═══
-    public function clubsSuivis()
+    /**
+     * Page de découverte de clubs pour s'abonner.
+     */
+    public function decouvrir(Request $request)
     {
-        $supporter = Auth::user()->supporter;
+        $supporter = $this->getSupporter();
+        $followedClubIds = $supporter->clubs()->pluck('clubs.id')->toArray();
 
-        $clubs = $supporter->clubs()
-                          ->withPivot('type_abonnement', 'abonnement_expire_at')
-                          ->paginate(15);
+        $query = Club::with('sport')->withCount('supporters');
 
-        return view('supporter.clubs-suivis', compact('clubs'));
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nom', 'like', "%{$search}%")
+                  ->orWhere('ville', 'like', "%{$search}%")
+                  ->orWhere('pays', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('sport_id')) {
+            $query->where('sport_id', $request->sport_id);
+        }
+
+        $clubs = $query->latest()->paginate(12)->withQueryString();
+        $sports = Sport::orderBy('nom')->get();
+
+        return view('supporter.decouvrir', compact('supporter', 'clubs', 'followedClubIds', 'sports'));
     }
 
-    // ═══ Ne plus suivre ═══
-    public function unfollowClub(Club $club)
+    /**
+     * S'abonner (gratuitement) à un club.
+     */
+    public function suivreClub(Club $club, Request $request)
     {
-        $supporter = Auth::user()->supporter;
+        $supporter = $this->getSupporter();
+
+        if (!$supporter->isFollowing($club)) {
+            $supporter->clubs()->attach($club->id, [
+                'type_abonnement'       => 'gratuit',
+                'notifications_actives' => 1,
+                'abonnement_expire_at'  => null,
+            ]);
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'               => true,
+                'is_following'          => true,
+                'notifications_actives' => true,
+                'club_id'               => $club->id,
+                'club_nom'              => $club->nom,
+                'message'               => "Vous suivez désormais {$club->nom} !",
+            ]);
+        }
+
+        return back()->with('success', "Vous êtes maintenant abonné à {$club->nom} !");
+    }
+
+    /**
+     * Se désabonner d'un club.
+     */
+    public function quitterClub(Club $club, Request $request)
+    {
+        $supporter = $this->getSupporter();
+
         $supporter->clubs()->detach($club->id);
 
-        return back()->with('success', 'Club suivi supprimé');
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'      => true,
+                'is_following' => false,
+                'club_id'      => $club->id,
+                'club_nom'     => $club->nom,
+                'message'      => "Vous ne suivez plus {$club->nom}.",
+            ]);
+        }
+
+        return back()->with('success', "Vous vous êtes désabonné de {$club->nom}.");
     }
 
-    // ═══ Renouveller abonnement premium ═══
-    public function renewPremium(Request $request, Club $club)
+    /**
+     * Activer / couper les notifications pour un club suivi.
+     */
+    public function toggleNotification(Club $club, Request $request)
     {
-        $supporter = Auth::user()->supporter;
+        $supporter = $this->getSupporter();
+        $match = $supporter->clubs()->where('clubs.id', $club->id)->first();
 
-        // Intégration paiement FedaPay
-        return redirect()->route('paiement.fedapay.abonnement', [
-            'club_id' => $club->id,
-            'type'    => 'supporter',
+        if (!$match) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Vous ne suivez pas ce club.'], 404);
+            }
+            return back()->with('error', 'Vous ne suivez pas ce club.');
+        }
+
+        $current = (bool) $match->pivot->notifications_actives;
+        $nouvelEtat = !$current;
+
+        $supporter->clubs()->updateExistingPivot($club->id, [
+            'notifications_actives' => $nouvelEtat ? 1 : 0,
         ]);
+
+        $message = $nouvelEtat
+            ? "Notifications activées pour {$club->nom}."
+            : "Notifications coupées pour {$club->nom}.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'               => true,
+                'notifications_actives' => $nouvelEtat,
+                'club_id'               => $club->id,
+                'club_nom'              => $club->nom,
+                'message'               => $message,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Profil du supporter.
+     */
+    public function profil()
+    {
+        $supporter = $this->getSupporter();
+        $user = $this->authenticatedUser();
+        $clubsCount = $supporter->clubs()->count();
+
+        return view('supporter.profil', compact('supporter', 'user', 'clubsCount'));
+    }
+
+    /**
+     * Mise à jour du profil supporter.
+     */
+    public function updateProfil(Request $request)
+    {
+        $supporter = $this->getSupporter();
+        $user = $this->authenticatedUser();
+
+        $validatedUser = $request->validate([
+            'name'      => 'required|string|max:100',
+            'prenom'    => 'nullable|string|max:100',
+            'telephone' => 'nullable|string|max:30',
+        ]);
+
+        $validatedSupporter = $request->validate([
+            'ville' => 'nullable|string|max:100',
+            'pays'  => 'required|string|max:100',
+            'bio'   => 'nullable|string|max:500',
+        ]);
+
+        $user->update($validatedUser);
+        $supporter->update($validatedSupporter);
+
+        return redirect()->route('supporter.profile')->with('success', 'Profil mis à jour avec succès.');
+    }
+
+    private function authenticatedUser(): User
+    {
+        $user = Auth::user();
+        abort_unless($user instanceof User, 401);
+
+        return $user;
     }
 }

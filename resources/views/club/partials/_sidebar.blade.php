@@ -1,21 +1,15 @@
 {{-- resources/views/club/partials/_sidebar.blade.php --}}
 @php
-    if (!isset($club)) {
-        $club = auth()->user()->club ?? null;
-    }
+    $club       = auth()->user()->club ?? null;
     $user        = auth()->user();
-    $avatarUrl   = $user?->avatar ? asset('storage/' . $user->avatar) : null;
     $clubLogoUrl = $club?->logo   ? asset('storage/' . $club->logo)   : null;
     $initiales   = $club ? strtoupper(substr($club->nom, 0, 2)) : 'CL';
 
     // Plan actif — logique CDC
     $subActif   = $club?->subscriptionActive();
-    $plan       = $subActif?->plan;
-    $planSlug   = $plan?->slug ?? 'gratuit';
+    $plan       = $subActif?->subscriptionPlan;
+    $planSlug   = $plan?->slug ?? $subActif?->plan ?? 'gratuit';
 
-    // Gratuit  : dashboard, joueurs, équipes, licences, agenda
-    // Standard : + transferts, sponsors, opportunités
-    // Premium  : + médias, stats avancées
     $isStandard = in_array($planSlug, ['standard', 'premium']);
     $isPremium  = $planSlug === 'premium';
 
@@ -27,6 +21,8 @@
     $urlPremium = fn(string $route) => $isPremium
         ? route($route)
         : route('club.locked', ['planRequis' => 'premium']);
+
+    $candidaturesEnAttente = $club?->candidatures()->where('statut', 'en_attente')->count() ?? 0;
 @endphp
 
 {{-- Overlay mobile --}}
@@ -42,11 +38,7 @@
 
     {{-- Brand --}}
     <div class="d-flex align-items-center gap-2 px-3 py-3 border-bottom">
-        @if($avatarUrl)
-            <img src="{{ $avatarUrl }}" id="sidebar-brand-logo"
-                 class="rounded-2 flex-shrink-0 object-fit-cover"
-                 style="width:36px;height:36px;" alt="avatar">
-        @elseif($clubLogoUrl)
+        @if($clubLogoUrl)
             <img src="{{ $clubLogoUrl }}" id="sidebar-brand-logo"
                  class="rounded-2 flex-shrink-0 object-fit-cover"
                  style="width:36px;height:36px;" alt="logo">
@@ -88,7 +80,7 @@
 
         <ul class="list-unstyled mb-2">
 
-            {{-- Dashboard — gratuit  --}}
+           
             <li>
                 <a href="{{ route('club.dashboard') }}"
                    class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
@@ -118,6 +110,27 @@
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
                     <span class="small fw-medium sidebar-text">Joueurs</span>
+                </a>
+            </li>
+            {{-- Candidatures — gratuit --}}
+            <li>
+                <a href="{{ route('club.candidatures.index') }}"
+                class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
+                        {{ request()->routeIs('club.candidatures.*') ? 'sidebar-link-active' : 'text-secondary' }}"
+                title="Candidatures">
+                    <svg class="flex-shrink-0" width="18" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <line x1="19" y1="8" x2="19" y2="14"/>
+                        <line x1="22" y1="11" x2="16" y2="11"/>
+                    </svg>
+                    <span class="small fw-medium sidebar-text">Candidatures</span>
+                    @if(($candidaturesEnAttente ?? 0) > 0)
+                    <span class="badge bg-danger rounded-pill ms-auto sidebar-text" style="font-size:9px;">
+                        {{ $candidaturesEnAttente }}
+                    </span>
+                    @endif
                 </a>
             </li>
 
@@ -152,7 +165,7 @@
                 </a>
             </li>
 
-            {{-- Agenda — gratuit ✅ --}}
+            {{-- Agenda — gratuit  --}}
             <li>
                 <a href="{{ route('club.agenda.index') }}"
                    class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
@@ -169,7 +182,7 @@
                 </a>
             </li>
 
-            {{-- Transferts — standard 🔒 --}}
+            {{-- Transferts — standard  --}}
             <li>
                 <a href="{{ $urlStandard('club.transferts.index') }}"
                    class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
@@ -233,7 +246,64 @@
                 </a>
             </li>
 
-            {{-- Médias — premium 🔒🔒 --}}
+            {{-- Opportunités — standard  --}}
+            <li>
+                <a href="{{ $urlStandard('club.opportunites.index') }}"
+                   class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
+                          {{ !$isStandard ? 'sidebar-link-locked' : '' }}
+                          {{ request()->routeIs('club.opportunites.*') ? 'sidebar-link-active' : 'text-secondary' }}"
+                   title="{{ $isStandard ? 'Opportunités' : 'Opportunités — Plan Standard requis' }}">
+                    <svg class="flex-shrink-0" width="18" height="18" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <span class="small fw-medium sidebar-text {{ !$isStandard ? 'text-muted' : '' }}">
+                        Opportunités
+                    </span>
+                    @if(!$isStandard)
+                        <svg class="ms-auto flex-shrink-0" width="13" height="13"
+                             viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="2.5">
+                            <rect x="3" y="11" width="18" height="11" rx="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        <span class="badge bg-warning text-dark rounded-pill sidebar-text ms-1"
+                              style="font-size:8px;padding:2px 6px;">Standard</span>
+                    @endif
+                </a>
+            </li>
+
+            <li>
+                <a href="{{ $urlStandard('club.statistiques.index') }}"
+                class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
+                        {{ !$isStandard ? 'sidebar-link-locked' : '' }}
+                        {{ request()->routeIs('club.statistiques.*') ? 'sidebar-link-active' : 'text-secondary' }}"
+                title="{{ $isStandard ? 'Statistiques' : 'Statistiques — Plan Standard requis' }}">
+                    <svg class="flex-shrink-0" width="18" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"/>
+                        <line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                    <span class="small fw-medium sidebar-text {{ !$isStandard ? 'text-muted' : '' }}">Statistiques</span>
+                    @if(!$isStandard)
+                        <svg class="ms-auto flex-shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="2.5">
+                            <rect x="3" y="11" width="18" height="11" rx="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        <span class="badge bg-warning text-dark rounded-pill sidebar-text ms-1" style="font-size:8px;padding:2px 6px;">Standard</span>
+                    @endif
+                </a>
+            </li>
+
+            <li class="mt-2 pt-2 border-top">
+                <p class="text-uppercase fw-bold px-2 mb-1 sidebar-section-label"
+                   style="font-size:9px;letter-spacing:1.5px;color:rgba(0,0,0,.3);">
+                    Premium
+                </p>
+            </li>
+
+            {{-- Médias — premium  --}}
             <li>
                 <a href="{{ $urlPremium('club.medias.index') }}"
                    class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
@@ -261,34 +331,7 @@
                 </a>
             </li>
 
-            {{-- Opportunités — standard 🔒 --}}
-            <li>
-                <a href="{{ $urlStandard('club.opportunites.index') }}"
-                   class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link
-                          {{ !$isStandard ? 'sidebar-link-locked' : '' }}
-                          {{ request()->routeIs('club.opportunites.*') ? 'sidebar-link-active' : 'text-secondary' }}"
-                   title="{{ $isStandard ? 'Opportunités' : 'Opportunités — Plan Standard requis' }}">
-                    <svg class="flex-shrink-0" width="18" height="18" viewBox="0 0 24 24"
-                         fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                    <span class="small fw-medium sidebar-text {{ !$isStandard ? 'text-muted' : '' }}">
-                        Opportunités
-                    </span>
-                    @if(!$isStandard)
-                        <svg class="ms-auto flex-shrink-0" width="13" height="13"
-                             viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="2.5">
-                            <rect x="3" y="11" width="18" height="11" rx="2"/>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                        </svg>
-                        <span class="badge bg-warning text-dark rounded-pill sidebar-text ms-1"
-                              style="font-size:8px;padding:2px 6px;">Standard</span>
-                    @endif
-                </a>
-            </li>
-
-            {{-- Abonnement — tous ✅ --}}
+            {{-- Abonnement — tous  --}}
             <li>
                 <a href="{{ route('club.abonnement.index') }}"
                    class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 text-decoration-none sidebar-link

@@ -14,8 +14,14 @@
     <nav class="flex-grow-1 overflow-auto p-2">
         <div class="text-uppercase small fw-bold text-white-50 px-2 py-2">Espace agent</div>
         <a href="{{ route('agent.dashboard') }}" class="agent-sidebar-link {{ request()->routeIs('agent.dashboard') ? 'active' : '' }}"><i class="bi bi-grid-1x2"></i>Tableau de bord</a>
-        <a href="{{ route('agent.joueurs') }}" class="agent-sidebar-link {{ request()->routeIs('agent.joueurs') ? 'active' : '' }}"><i class="bi bi-people"></i>Joueurs représentés</a>
-        <a href="{{ route('agent.transferts') }}" class="agent-sidebar-link {{ request()->routeIs('agent.transferts') && !request()->routeIs('agent.transferts.*') ? 'active' : '' }}"><i class="bi bi-arrow-left-right"></i>Transferts</a>
+        <a href="{{ route('agent.joueurs') }}" class="agent-sidebar-link {{ request()->routeIs('agent.joueurs') ? 'active' : '' }}">
+    <i class="bi bi-people"></i>Joueurs représentés
+    @php $echeances = auth()->user()->agent?->mandatsExpirantBientot()->count() ?? 0; @endphp
+    @if($echeances > 0)
+    <span class="badge bg-danger rounded-pill ms-auto" style="font-size:9px;">{{ $echeances }}</span>
+    @endif
+</a>
+        <a href="{{ route('agent.transferts.index') }}" class="agent-sidebar-link {{ request()->routeIs('agent.transferts.index') ? 'active' : '' }}"><i class="bi bi-arrow-left-right"></i>Transferts</a>
         <a href="{{ route('agent.transferts.create') }}" class="agent-sidebar-link {{ request()->routeIs('agent.transferts.create') ? 'active' : '' }}"><i class="bi bi-send"></i>Nouvelle offre</a>
         <a href="{{ route('agent.transferts.historique') }}" class="agent-sidebar-link {{ request()->routeIs('agent.transferts.historique') ? 'active' : '' }}"><i class="bi bi-clock-history"></i>Historique</a>
         <a href="{{ route('agent.partenaires') }}" class="agent-sidebar-link {{ request()->routeIs('agent.partenaires') ? 'active' : '' }}"><i class="bi bi-building"></i>Clubs partenaires</a>
