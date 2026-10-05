@@ -1,59 +1,88 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Connect Sport
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+![Laravel](https://img.shields.io/badge/Laravel-FF2D20?logo=laravel&logoColor=white)
+![Alpine.js](https://img.shields.io/badge/Alpine.js-8BC0D0?logo=alpinedotjs&logoColor=black)
+![Bootstrap](https://img.shields.io/badge/Bootstrap_5-7952B3?logo=bootstrap&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?logo=mysql&logoColor=white)
 
-## About Laravel
+**Connect Sport** est une plateforme web multi-sports (football, basketball, handball, volleyball, etc.) qui digitalise la gestion des clubs et les met en relation avec les joueurs, les parents, les agents sportifs et les supporters. Chaque profil dispose de son propre espace, avec des droits adaptés à son rôle.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Pourquoi ce projet ?
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Dans beaucoup de clubs, les effectifs, les licences, les statistiques et les échanges sont gérés avec des outils dispersés (feuilles de calcul, messageries, papier). Connect Sport réunit tout dans une seule plateforme : un club organise ses équipes et ses joueurs, un joueur suit sa carrière, un parent suit son enfant, un agent accompagne les transferts et un supporter suit l'actualité de ses clubs.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Profils et fonctionnalités
 
-## Learning Laravel
+| Profil | Ce qu'il peut faire |
+|---|---|
+| **Club** | Gérer ses équipes et ses effectifs, ses licences et son agenda, publier des médias, traiter les candidatures des joueurs sans club, valider les transferts, saisir les statistiques de match, gérer ses sponsors et son abonnement |
+| **Joueur** | Consulter son profil, sa carrière et ses statistiques (en lecture seule), demander un transfert, suivre l'agenda de son club, recevoir des notifications. Un joueur sans club peut candidater auprès des clubs |
+| **Parent** | Lier son ou ses enfants, suivre leur club, leurs licences et leurs statistiques validées, échanger directement avec le club |
+| **Agent sportif** | Suivre ses joueurs représentés, ses mandats, ses transferts et ses négociations, et envoyer des offres, avec un abonnement à paliers |
+| **Supporter** | Créer gratuitement un compte pour suivre ses clubs, leur agenda, leurs matchs et résultats, et recevoir des notifications |
+| **Administrateur** | Superviser la plateforme : utilisateurs, clubs, joueurs, agents, transferts, abonnements et paiements |
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Les sponsors n'ont pas de compte : ce sont les clubs qui gèrent leurs partenariats, affichés sur leur fiche publique. Les pages publiques (accueil, annuaire des clubs, fiches clubs, agenda et médias publics) sont accessibles sans compte.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Fonctionnalités transverses
 
-## Laravel Sponsors
+- **Rôles et permissions** : chaque espace est protégé côté serveur par un middleware de rôles.
+- **Carrière** : un joueur appartient à un club à la fois, avec un historique multi-clubs. Toute entrée devient officielle uniquement après validation du club.
+- **Statistiques** : saisies uniquement par le staff du club, comme une feuille de match officielle, avec des données communes et des données propres à chaque sport.
+- **Transferts** : initiés par le club ou par le joueur, avec suivi du statut (en attente, négociation, accepté, refusé, annulé).
+- **Candidatures** : un joueur sans club postule, le club accepte ou refuse.
+- **Abonnements à trois paliers** (Gratuit, Standard, Premium), avec rappel avant l'expiration.
+- **Paiement en ligne** avec FedaPay (environnement sandbox).
+- **Messagerie et notifications** en temps réel.
+- **Médias** hébergés sur Cloudinary.
+- **Interface** responsive, avec mode clair et sombre.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Stack technique
 
-### Premium Partners
+| Couche | Technologies |
+|---|---|
+| Backend | Laravel, PHP |
+| Frontend | Blade, Alpine.js, Bootstrap 5 |
+| Base de données | MySQL |
+| Paiement | FedaPay |
+| Temps réel | Pusher |
+| Médias | Cloudinary |
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+**Organisation du code** : les contrôleurs sont regroupés par profil (un dossier par acteur), les accès sont contrôlés par un middleware de rôles et des policies, et une tâche planifiée vérifie chaque jour les abonnements arrivant à expiration.
 
-## Contributing
+## Captures d'écran
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Pages publiques
 
-## Code of Conduct
+![Page d'accueil](docs/screenshots/accueil.png)
+*Page d'accueil : présentation de la plateforme et des profils qui peuvent la rejoindre.*
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+![Annuaire des clubs](docs/screenshots/annuaire-clubs.png)
+*Annuaire des clubs, avec recherche et filtres par sport et par niveau.*
 
-## Security Vulnerabilities
+![Fiche d'un club](docs/screenshots/fiche-club.png)
+*Fiche publique d'un club : informations, sponsors et partenaires, suivi par les supporters.*
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Espaces par profil
 
-## License
+![Espace joueur](docs/screenshots/espace-joueur.png)
+*Espace joueur : statistiques, notifications, prochains événements, carrière et transferts.*
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+![Espace club](docs/screenshots/espace-club.png)
+*Espace club : effectifs, équipes, licences, agenda, transferts en cours et abonnement.*
+
+![Espace parent](docs/screenshots/espace-parent.png)
+*Espace parent : suivi de l'enfant, de son club et de ses licences, avec messagerie.*
+
+![Espace agent](docs/screenshots/espace-agent.png)
+*Espace agent : joueurs représentés, mandats, transferts et négociations.*
+
+![Espace administrateur](docs/screenshots/espace-admin.png)
+*Espace administrateur : vue d'ensemble de la plateforme, alertes d'abonnement et paiements FedaPay.*
+
+## Auteur
+
+**Judicaël Kodjori**, développeur web full-stack (Laravel), 
+
+- GitHub : [@Judi-665](https://github.com/Judi-665)
+- LinkedIn : [linkedin.com/in/judicaël-kodjori](https://linkedin.com/in/judicaël-kodjori)
